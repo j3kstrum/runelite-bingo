@@ -1,10 +1,11 @@
 package com.runeliteminigame.tasks;
 
 import com.runeliteminigame.IMinigamePlugin;
+import net.runelite.api.NPC;
+import net.runelite.api.events.ActorDeath;
 
 import java.awt.image.BufferedImage;
 import java.util.Dictionary;
-import java.util.Random;
 
 public interface IRunescapeTask {
 
@@ -13,5 +14,7 @@ public interface IRunescapeTask {
     boolean isCompleted();
     BufferedImage getImage(IMinigamePlugin plugin);
     Dictionary<String, Object> serializedTask();
+
+    void onPlayerKilledNPC(NPC killed, int damageDealt);
 
 }

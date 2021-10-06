@@ -4,12 +4,10 @@ import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.MinigameDisplayContainer;
+import com.runeliteminigame.tasks.IRunescapeTask;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.WidgetMenuOptionClicked;
+import net.runelite.api.*;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -26,7 +24,8 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
 
-import static net.runelite.api.widgets.WidgetInfo.INVENTORY;
+import java.util.ArrayList;
+import java.util.Hashtable;
 
 @Slf4j
 @PluginDescriptor(
@@ -71,6 +70,22 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 
 	@Inject
 	private MouseManager mouseManager;
+
+	// We'll have to iterate over them all with each death, and remove will be infrequent.
+	// Arraylist is therefore fine.
+	private final ArrayList<IRunescapeTask> playerKilledNPCListeners = new ArrayList<>();
+
+	private final Hashtable<NPC, Integer> playerDamageDealt = new Hashtable<>();
+
+	@Override
+	public void registerPlayerKilledNPCListener(IRunescapeTask task) {
+		this.playerKilledNPCListeners.add(task);
+	}
+
+	@Override
+	public void removePlayerKilledNPCListener(IRunescapeTask task) {
+		this.playerKilledNPCListeners.remove(task);
+	}
 
 	@Override
 	public void configure(Binder binder)
@@ -123,11 +138,53 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{
-		if (event.getGameState() == GameState.LOGGED_IN)
+		if (event.getGameState() == GameState.LOGGING_IN)
 		{
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
+			this.playerDamageDealt.clear();
 		}
 		bingoOverlay.onGameStateChanged(event);
+	}
+
+	@Subscribe
+	public void onActorDeath(ActorDeath actorDeath) {
+		Actor killed = actorDeath.getActor();
+		if (!(killed instanceof NPC)) {
+			return;
+		}
+		NPC killedNPC = (NPC) killed;
+		if (this.playerDamageDealt.containsKey(killedNPC)) {
+			for (IRunescapeTask task : this.playerKilledNPCListeners) {
+				task.onPlayerKilledNPC((NPC)(actorDeath.getActor()), playerDamageDealt.get(killedNPC));
+			}
+		}
+
+	}
+
+	@Subscribe
+	public void onNpcDespawned(NpcDespawned npcDespawned) {
+		this.playerDamageDealt.remove(npcDespawned.getNpc());
+	}
+
+	@Subscribe
+	public void onHitsplatApplied(HitsplatApplied hitsplatApplied) {
+		// Based off of DPS counter plugin.
+		Player player = client.getLocalPlayer();
+		Actor target = hitsplatApplied.getActor();
+		if (!(target instanceof NPC)) {
+			return;
+		}
+		NPC npc = (NPC) target;
+		Hitsplat hitsplat = hitsplatApplied.getHitsplat();
+
+		if (!hitsplat.isMine()) {
+			return;
+		}
+
+		if (!this.playerDamageDealt.containsKey(npc)) {
+			this.playerDamageDealt.put(npc, 0);
+		}
+
+		this.playerDamageDealt.put(npc, hitsplat.getAmount() + this.playerDamageDealt.get(npc));
 	}
 
 	private boolean clickedOptionEquals(WidgetMenuOptionClicked event, WidgetMenuOption widgetMenuOption)

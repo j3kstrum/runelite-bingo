@@ -1,5 +1,6 @@
 package com.runelitebingo;
 
+import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.tasks.CombatTask;
 import com.runeliteminigame.tasks.CombatTaskElement;
 import com.runeliteminigame.tasks.IRunescapeTask;
@@ -11,11 +12,11 @@ public class BingoConstraint {
     // TODO: Create the bingo constraint class. Constrains bingo to adhere to only combat tasks,
     // tasks with a certain duration, only skilling tasks, etc...
 
-    IRunescapeTask[][] createTasks() {
+    IRunescapeTask[][] createTasks(IMinigamePlugin plugin) {
         throw new NotImplementedException("Constraints are not yet supported.");
     }
 
-    static IRunescapeTask[][] randomTasks() {
+    static IRunescapeTask[][] randomTasks(IMinigamePlugin plugin) {
         IRunescapeTask[][] tasks = new IRunescapeTask[5][5];
         for (int i = 0; i < tasks.length; i++) {
             for (int j = 0; j < tasks[i].length; j++) {
@@ -25,7 +26,7 @@ public class BingoConstraint {
                     CombatTaskElement[] candidates = CombatTaskElement.values();
                     CombatTaskElement selected = candidates[new Random().nextInt(candidates.length)];
                     int quantity = Math.max(1, new Random().nextInt(selected.maxQuantity()));
-                    task = new CombatTask(selected.getName(), quantity);
+                    task = new CombatTask(selected.getName(), quantity, plugin);
                 }
                 else {
                     throw new NotImplementedException("Invalid task type selected when creating random task.");

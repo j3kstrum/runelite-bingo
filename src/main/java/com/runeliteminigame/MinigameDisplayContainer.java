@@ -144,7 +144,7 @@ public class MinigameDisplayContainer extends Overlay {
         redraw = true;
         if (gameStateChanged.getGameState().equals(GameState.LOGGED_IN)) {
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Initializing example bingo game.", null);
-            loadedMinigames.add(SinglePlayerBingoGame.createGame(null));
+            loadedMinigames.add(SinglePlayerBingoGame.createGame(null, plugin));
             currentMinigameIndex = 0;
         }
     }

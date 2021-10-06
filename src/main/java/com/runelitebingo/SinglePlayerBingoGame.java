@@ -1,12 +1,10 @@
 package com.runelitebingo;
 
-import com.google.inject.Inject;
 import com.runeliteminigame.IDisplayableMinigame;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.tasks.CombatTask;
 import com.runeliteminigame.tasks.IRunescapeTask;
 import net.runelite.api.ItemID;
-import net.runelite.client.game.ItemManager;
 
 import java.awt.image.BufferedImage;
 import java.util.Dictionary;
@@ -24,13 +22,13 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
             {null, null, null, null, null}
     };
 
-    public static SinglePlayerBingoGame createGame(BingoConstraint constraint) {
+    public static SinglePlayerBingoGame createGame(BingoConstraint constraint, IMinigamePlugin plugin) {
         SinglePlayerBingoGame game = new SinglePlayerBingoGame();
         IRunescapeTask[][] tasks;
         if (constraint == null) {
-            tasks = BingoConstraint.randomTasks();
+            tasks = BingoConstraint.randomTasks(plugin);
         } else {
-            tasks = constraint.createTasks();
+            tasks = constraint.createTasks(plugin);
         }
         for (int row = 0; row < tasks.length; row++) {
             for (int col = 0; col < tasks[row].length; col++) {
@@ -40,7 +38,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         return game;
     }
 
-    public static SinglePlayerBingoGame loadGameFrom(Dictionary<String, Object> config) {
+    public static SinglePlayerBingoGame loadGameFrom(Dictionary<String, Object> config, IMinigamePlugin plugin) {
         boolean cancelledGame = (boolean)config.get("cancelled");
         Dictionary<String, Object>[][] taskSpecs = (Dictionary<String, Object>[][]) config.get("tasks");
         SinglePlayerBingoGame game = new SinglePlayerBingoGame();
@@ -51,7 +49,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
                 IRunescapeTask task;
                 switch ((String)taskSpec.get(IRunescapeTask.TASK_TYPE)) {
                     case CombatTask.COMBAT_MINIGAME_TASK:
-                        task = CombatTask.loadFrom(taskSpec);
+                        task = CombatTask.loadFrom(taskSpec, plugin);
                         break;
                     default:
                         throw new IllegalArgumentException("Invalid taskType from configuration: " + taskSpec.get(IRunescapeTask.TASK_TYPE));

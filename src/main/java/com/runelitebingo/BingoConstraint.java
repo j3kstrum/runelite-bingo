@@ -25,7 +25,7 @@ public class BingoConstraint {
                 if (taskType < 1) {
                     CombatTaskElement[] candidates = CombatTaskElement.values();
                     CombatTaskElement selected = candidates[new Random().nextInt(candidates.length)];
-                    int quantity = Math.max(1, new Random().nextInt(selected.maxQuantity()));
+                    int quantity = 1 + new Random().nextInt(selected.maxQuantity());
                     task = new CombatTask(selected.getName(), quantity, plugin);
                 }
                 else {

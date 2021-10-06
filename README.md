@@ -1,2 +1,2 @@
 # Runelite Bingo Plugin
-Who doesn't love a good game of bingo?
+Adds a new UI component that tracks player tasks. Players try to complete five tasks in a row, chosen from the board, in order to score "Bingo".

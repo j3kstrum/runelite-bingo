@@ -71,7 +71,11 @@ public class MinigameDisplayContainer extends Overlay {
         setPriority(OverlayPriority.HIGH);
         setPosition(OverlayPosition.TOP_LEFT);
         setLayer(OverlayLayer.ABOVE_WIDGETS);
-        backgroundComponent.setFill(false);
+        backgroundComponent.setFill(true);
+    }
+
+    public void requestRedraw() {
+        this.redraw = true;
     }
 
     public boolean isOverlayShown() {
@@ -113,6 +117,8 @@ public class MinigameDisplayContainer extends Overlay {
             synchronized (this) {
                 cachedImage = image;
             }
+
+            redraw = false;
         }
 
         BufferedImage closeButton = closeButtonHandler.getCloseButtonImage();
@@ -122,9 +128,9 @@ public class MinigameDisplayContainer extends Overlay {
                     closeButton.getWidth(), closeButton.getHeight());
         }
 
-        graphics.drawImage(cachedImage, 0, 0, null);
         backgroundComponent.setRectangle(new Rectangle(0, 0, cachedImage.getWidth(), cachedImage.getHeight()));
         backgroundComponent.render(graphics);
+        graphics.drawImage(cachedImage, 0, 0, null);
 
         if (isCloseButtonHovered) {
             closeButton = closeButtonHover;

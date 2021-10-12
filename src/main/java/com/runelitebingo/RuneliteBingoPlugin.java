@@ -135,6 +135,10 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 		mouseManager.unregisterMouseWheelListener(inputListener);
 	}
 
+	public void requestRedraw() {
+		this.bingoOverlay.requestRedraw();
+	}
+
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{

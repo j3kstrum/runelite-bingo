@@ -4,12 +4,14 @@ import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.ItemID;
 import net.runelite.api.NPC;
+import net.runelite.client.ui.overlay.components.TextComponent;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.Buffer;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -64,6 +66,10 @@ public class CombatTask implements IRunescapeTask {
         plugin.registerPlayerKilledNPCListener(this);
     }
 
+    private void requestRedraw() {
+        this.pluginSubscribedTo.requestRedraw();
+    }
+
     public void onPlayerKilledNPC(NPC killed, int damageDealt) {
         if (isCompleted()) {
             return;
@@ -73,6 +79,7 @@ public class CombatTask implements IRunescapeTask {
                 (float)damageDealt / this.target.getTotalHealth() >= this.minFractionDamage
         ) {
             ++this.progress;
+            this.requestRedraw();
         }
     }
 
@@ -89,12 +96,31 @@ public class CombatTask implements IRunescapeTask {
             taskImage.getGraphics().drawImage(scaledBaseImage, 0, 0, null);
             taskImage.getGraphics().drawImage(combatOverlay, 0, 0, null);
         }
-        // TODO: Add image for the quantity.
+
+        BufferedImage retrievedImage = new BufferedImage(taskImage.getWidth(), taskImage.getHeight(), TYPE_INT_ARGB);
+        retrievedImage.getGraphics().drawImage(taskImage, 0, 0, null);
+
         if (isCompleted()) {
             BufferedImage completedImage = ImageUtils.scale(TASK_COMPLETE_IMAGE, taskImage.getWidth(), taskImage.getHeight());
-            taskImage.getGraphics().drawImage(completedImage, 0, 0, null);
+            retrievedImage.getGraphics().drawImage(completedImage, 0, 0, null);
+        } else {
+            // Add image for the quantity.
+            String amountLeftText = String.valueOf(this.amount - this.progress);
+            TextComponent amountLeft = new TextComponent();
+            amountLeft.setText(amountLeftText);
+
+            // Location is bottom-right corner.
+            Point startCoordinates = ImageUtils.bottomRightAlignedPoints(amountLeftText, retrievedImage);
+
+            if (startCoordinates.x < 0 || startCoordinates.y < 0) {
+                // Don't draw if the start y or x are invalid - just return the original.
+                return retrievedImage;
+            }
+
+            amountLeft.setPosition(startCoordinates);
+            amountLeft.render(retrievedImage.createGraphics());
         }
-        return taskImage;
+        return retrievedImage;
     }
 
     @Override
@@ -104,6 +130,8 @@ public class CombatTask implements IRunescapeTask {
             // Completely disassociate from the listener.
             pluginSubscribedTo.removePlayerKilledNPCListener(this);
             pluginSubscribedTo = null;
+            // Final redraw at total completion.
+            this.requestRedraw();
         }
         return completed;
     }

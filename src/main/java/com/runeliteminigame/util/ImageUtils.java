@@ -1,5 +1,9 @@
 package com.runeliteminigame.util;
 
+import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.overlay.components.TextComponent;
+
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
@@ -15,6 +19,17 @@ public class ImageUtils {
 
     public static BufferedImage scaleSquare(BufferedImage original, int newSize) {
         return scale(original, newSize, newSize);
+    }
+
+    public static Point bottomRightAlignedPoints(String text, BufferedImage alignedAgainst) {
+        return ImageUtils.bottomRightAlignedPoints(text, alignedAgainst, FontManager.getRunescapeFont());
+    }
+
+    public static Point bottomRightAlignedPoints(String text, BufferedImage alignedAgainst, Font font) {
+        FontMetrics fontMetrics = alignedAgainst.getGraphics().getFontMetrics(font);
+        int startY = alignedAgainst.getHeight() - fontMetrics.getHeight();
+        int startX = alignedAgainst.getWidth() - fontMetrics.stringWidth(text) - fontMetrics.stringWidth(" ");
+        return new Point(startX, startY);
     }
 
 }

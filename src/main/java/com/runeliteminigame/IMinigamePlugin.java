@@ -11,4 +11,6 @@ public interface IMinigamePlugin {
 
     void registerPlayerKilledNPCListener(IRunescapeTask task);
     void removePlayerKilledNPCListener(IRunescapeTask task);
+
+    void requestRedraw();
 }

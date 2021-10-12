@@ -5,12 +5,15 @@ import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.ItemID;
 import net.runelite.api.NPC;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import static java.awt.image.BufferedImage.TYPE_INT_RGB;
+import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 
 public class CombatTask implements IRunescapeTask {
 
@@ -21,10 +24,26 @@ public class CombatTask implements IRunescapeTask {
     private static final BufferedImage TASK_COMPLETE_IMAGE;
 
     static {
-        TASK_COMPLETE_IMAGE = new BufferedImage(1, 1, TYPE_INT_RGB);
-        Graphics g = TASK_COMPLETE_IMAGE.getGraphics();
+        BufferedImage completionImage;
+        URL taskCompleteURL = CombatTask.class.getClassLoader().getResource("checkmark.png");
+
+        BufferedImage backupImage = new BufferedImage(1, 1, TYPE_INT_ARGB);
+        Graphics g = backupImage.getGraphics();
         g.setColor(Color.GREEN);
         g.drawRect(0, 0, 1, 1);
+
+        if (taskCompleteURL == null) {
+            completionImage = backupImage;
+        }
+        else {
+            try {
+                completionImage = ImageIO.read(taskCompleteURL);
+            } catch (IOException ioe) {
+                completionImage = backupImage;
+            }
+        }
+
+        TASK_COMPLETE_IMAGE = completionImage;
     }
 
     public static final String COMBAT_MINIGAME_TASK = "combat";
@@ -66,7 +85,7 @@ public class CombatTask implements IRunescapeTask {
             BufferedImage scaledBaseImage = ImageUtils.scale(baseImage, baseImage.getWidth() * 2, baseImage.getHeight() * 2);
             // Get combat overlay image. TODO: Choose a better image.
             BufferedImage combatOverlay = plugin.getItemManager().getImage(ItemID.BRONZE_SWORD);
-            taskImage = new BufferedImage(scaledBaseImage.getWidth(), scaledBaseImage.getHeight(), TYPE_INT_RGB);
+            taskImage = new BufferedImage(scaledBaseImage.getWidth(), scaledBaseImage.getHeight(), TYPE_INT_ARGB);
             taskImage.getGraphics().drawImage(scaledBaseImage, 0, 0, null);
             taskImage.getGraphics().drawImage(combatOverlay, 0, 0, null);
         }

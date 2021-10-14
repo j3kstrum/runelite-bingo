@@ -1,6 +1,8 @@
-package com.runeliteminigame;
+package com.runeliteminigame.display;
 
 import com.runelitebingo.SinglePlayerBingoGame;
+import com.runeliteminigame.IDisplayableMinigame;
+import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.util.ImageUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,8 +12,8 @@ import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetMenuOptionClicked;
 import net.runelite.api.widgets.WidgetInfo;
-import net.runelite.client.game.SpriteManager;
-import net.runelite.client.input.*;
+import net.runelite.client.input.KeyManager;
+import net.runelite.client.input.MouseManager;
 import net.runelite.client.menus.MenuManager;
 import net.runelite.client.menus.WidgetMenuOption;
 import net.runelite.client.ui.overlay.Overlay;
@@ -20,18 +22,12 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.components.BackgroundComponent;
 
-import javax.annotation.Nullable;
 import javax.inject.Singleton;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelEvent;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-
-import static net.runelite.api.SpriteID.WINDOW_CLOSE_BUTTON_RED_X;
-import static net.runelite.api.SpriteID.WINDOW_CLOSE_BUTTON_RED_X_HOVERED;
 
 /**
  * Class designed to hold the graphics for sub minigames.
@@ -85,12 +81,14 @@ public class MinigameDisplayContainer extends Overlay {
         this.plugin = plugin;
         this.closeButtonHandler = new MinigameCloseButtonHandler(plugin.getSpriteManager());
         setPriority(OverlayPriority.HIGH);
-        setPosition(OverlayPosition.TOP_LEFT);
+        setPosition(OverlayPosition.TOP_CENTER);
         setLayer(OverlayLayer.ABOVE_WIDGETS);
         backgroundComponent.setFill(true);
+        this.registerInputListener(plugin.getKeyManager(), plugin.getMouseManager());
+        this.addCustomOptions(plugin.getMenuManager());
     }
 
-    public void registerInputListener(KeyManager keyManager, MouseManager mouseManager) {
+    private void registerInputListener(KeyManager keyManager, MouseManager mouseManager) {
         this.unregisterInputListeners();
         keyManager.registerKeyListener(inputListener);
         mouseManager.registerMouseListener(inputListener);
@@ -99,7 +97,7 @@ public class MinigameDisplayContainer extends Overlay {
         this.mouseManager = mouseManager;
     }
 
-    public void unregisterInputListeners() {
+    private void unregisterInputListeners() {
         if (this.keyManager != null) {
             this.keyManager.unregisterKeyListener(inputListener);
             this.keyManager = null;
@@ -111,12 +109,48 @@ public class MinigameDisplayContainer extends Overlay {
         }
     }
 
-    public void requestRedraw() {
-        this.redraw = true;
+    private void addCustomOptions(MenuManager menuManager)
+    {
+        menuManager.addManagedCustomMenu(this.menuOption);
+        this.menuManager = menuManager;
     }
 
-    public boolean isOverlayShown() {
+    private void removeCustomOptions()
+    {
+        if (this.menuManager != null) {
+            this.menuManager.removeManagedCustomMenu(this.menuOption);
+        }
+        this.menuManager = null;
+    }
+
+    private boolean clickedOptionEquals(WidgetMenuOptionClicked event, WidgetMenuOption widgetMenuOption)
+    {
+        return event.getMenuOption().equals(widgetMenuOption.getMenuOption()) && event.getMenuTarget().equals(widgetMenuOption.getMenuTarget());
+    }
+
+    /**
+     * Setter for showing the map. When the map is set to show, the map is
+     * re-rendered
+     *
+     * @param show Whether or not the map should be shown.
+     */
+    private synchronized void setDisplayOverlay(boolean show) {
+        showOverlay = show;
+        redraw = true;
+    }
+
+    boolean isOverlayShown() {
         return showOverlay;
+    }
+
+    public void shutDown() {
+        this.closeOverlay();
+        this.unregisterInputListeners();
+        this.removeCustomOptions();
+    }
+
+    public void requestRedraw() {
+        this.redraw = true;
     }
 
     public void onWidgetMenuOptionClicked(WidgetMenuOptionClicked event)
@@ -139,25 +173,6 @@ public class MinigameDisplayContainer extends Overlay {
         }
     }
 
-    public void addCustomOptions(MenuManager menuManager)
-    {
-        menuManager.addManagedCustomMenu(this.menuOption);
-        this.menuManager = menuManager;
-    }
-
-    public void removeCustomOptions()
-    {
-        if (this.menuManager != null) {
-            this.menuManager.removeManagedCustomMenu(this.menuOption);
-        }
-        this.menuManager = null;
-    }
-
-    private boolean clickedOptionEquals(WidgetMenuOptionClicked event, WidgetMenuOption widgetMenuOption)
-    {
-        return event.getMenuOption().equals(widgetMenuOption.getMenuOption()) && event.getMenuTarget().equals(widgetMenuOption.getMenuTarget());
-    }
-
     public void openOverlay()
     {
         this.setDisplayOverlay(true);
@@ -168,17 +183,6 @@ public class MinigameDisplayContainer extends Overlay {
     {
         this.setDisplayOverlay(false);
         this.menuOption.setMenuOption("Show");
-    }
-
-    /**
-     * Setter for showing the map. When the map is set to show, the map is
-     * re-rendered
-     *
-     * @param show Whether or not the map should be shown.
-     */
-    private synchronized void setDisplayOverlay(boolean show) {
-        showOverlay = show;
-        redraw = true;
     }
 
     @Override
@@ -245,125 +249,3 @@ public class MinigameDisplayContainer extends Overlay {
 
 }
 
-class MinigameCloseButtonHandler {
-
-    private BufferedImage closeButtonImage;
-    private BufferedImage closeButtonHoveredImage;
-    private final SpriteManager spriteManager;
-
-    MinigameCloseButtonHandler(SpriteManager manager) {
-        this.spriteManager = manager;
-    }
-
-    @Nullable
-    BufferedImage getCloseButtonImage() {
-        if (closeButtonImage == null) {
-            closeButtonImage = spriteManager.getSprite(WINDOW_CLOSE_BUTTON_RED_X, 0);
-        }
-        return closeButtonImage;
-    }
-
-    @Nullable
-    BufferedImage getCloseButtonHoveredImage() {
-        if (closeButtonHoveredImage == null) {
-            closeButtonHoveredImage = spriteManager.getSprite(WINDOW_CLOSE_BUTTON_RED_X_HOVERED, 0);
-        }
-        return closeButtonHoveredImage;
-    }
-}
-
-class MinigameInputListener extends MouseAdapter implements KeyListener, MouseWheelListener
-{
-    private final MinigameDisplayContainer overlay;
-
-    MinigameInputListener(MinigameDisplayContainer overlay) {
-        this.overlay = overlay;
-    }
-
-    @Override
-    public void keyTyped(KeyEvent event)
-    {
-
-    }
-
-    @Override
-    public void keyPressed(KeyEvent event)
-    {
-        if (!overlay.isOverlayShown())
-        {
-            return;
-        }
-
-        if (event.getKeyCode() == KeyEvent.VK_ESCAPE)
-        {
-            overlay.closeOverlay();
-            event.consume();
-        }
-    }
-
-    @Override
-    public void keyReleased(KeyEvent event)
-    {
-
-    }
-
-    @Override
-    public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event)
-    {
-        return event;
-    }
-
-    @Override
-    public MouseEvent mouseClicked(MouseEvent event)
-    {
-        if (!overlay.isOverlayShown() || isNotWithinOverlay(event.getPoint()))
-        {
-            return event;
-        }
-
-        event.consume();
-        return event;
-    }
-
-    @Override
-    public MouseEvent mousePressed(MouseEvent event)
-    {
-        if (!overlay.isOverlayShown() || isNotWithinOverlay(event.getPoint()))
-        {
-            return event;
-        }
-
-        if (SwingUtilities.isLeftMouseButton(event) && isWithinCloseButton(event.getPoint()))
-        {
-            overlay.closeOverlay();
-        }
-
-        event.consume();
-        return event;
-    }
-
-    @Override
-    public MouseEvent mouseMoved(MouseEvent event)
-    {
-        if (overlay.isOverlayShown())
-        {
-            overlay.setCloseButtonHovered(isWithinCloseButton(event.getPoint()));
-        }
-
-        return event;
-    }
-
-    private boolean isNotWithinOverlay(final Point point)
-    {
-        return !overlay.getBounds().contains(point);
-    }
-
-    private boolean isWithinCloseButton(final Point point)
-    {
-        Point overlayPoint = new Point(point.x - (int) overlay.getBounds().getX(),
-                point.y - (int) overlay.getBounds().getY());
-
-        return overlay.getCloseButtonBounds() != null
-                && overlay.getCloseButtonBounds().contains(overlayPoint);
-    }
-}

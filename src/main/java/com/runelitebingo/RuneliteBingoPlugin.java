@@ -52,11 +52,6 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 		return configManager.getConfig(RuneliteBingoConfig.class);
 	}
 
-	private final WidgetMenuOption openBingoOption = new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.MINIMAP_WORLDMAP_OPTIONS);
-
-	@Inject
-	private InstanceMapInputListener inputListener;
-
 	@Inject
 	private OverlayManager overlayManager;
 
@@ -93,16 +88,6 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 		binder.bind(InstanceMapInputListener.class);
 	}
 
-	private void addCustomOptions()
-	{
-		menuManager.addManagedCustomMenu(openBingoOption);
-	}
-
-	private void removeCustomOptions()
-	{
-		menuManager.removeManagedCustomMenu(openBingoOption);
-	}
-
 	@Override
 	public ItemManager getItemManager() {
 		return this.itemManager;
@@ -117,22 +102,18 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 	protected void startUp() throws Exception
 	{
 		bingoOverlay = new MinigameDisplayContainer(this.client, this);
+		bingoOverlay.registerInputListener(keyManager, mouseManager);
 		overlayManager.add(bingoOverlay);
-		addCustomOptions();
-		keyManager.registerKeyListener(inputListener);
-		mouseManager.registerMouseListener(inputListener);
-		mouseManager.registerMouseWheelListener(inputListener);
+		bingoOverlay.addCustomOptions(menuManager);
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		bingoOverlay.setShowBingo(false);
+		bingoOverlay.closeOverlay();
+		bingoOverlay.unregisterInputListeners();
 		overlayManager.remove(bingoOverlay);
-		removeCustomOptions();
-		keyManager.unregisterKeyListener(inputListener);
-		mouseManager.unregisterMouseListener(inputListener);
-		mouseManager.unregisterMouseWheelListener(inputListener);
+		bingoOverlay.removeCustomOptions();
 	}
 
 	public void requestRedraw() {
@@ -191,41 +172,9 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 		this.playerDamageDealt.put(npc, hitsplat.getAmount() + this.playerDamageDealt.get(npc));
 	}
 
-	private boolean clickedOptionEquals(WidgetMenuOptionClicked event, WidgetMenuOption widgetMenuOption)
-	{
-		return event.getMenuOption().equals(widgetMenuOption.getMenuOption()) && event.getMenuTarget().equals(widgetMenuOption.getMenuTarget());
-	}
-
 	@Subscribe
 	public void onWidgetMenuOptionClicked(WidgetMenuOptionClicked event)
 	{
-		if (event.getWidget() != WidgetInfo.MINIMAP_WORLDMAP_OPTIONS)
-		{
-			return;
-		}
-
-		if (clickedOptionEquals(event, openBingoOption))
-		{
-			if (bingoOverlay.isOverlayShown())
-			{
-				closeOverlay();
-			}
-			else
-			{
-				openOverlay();
-			}
-		}
-	}
-
-	public void openOverlay()
-	{
-		bingoOverlay.setShowBingo(true);
-		openBingoOption.setMenuOption("Hide");
-	}
-
-	public void closeOverlay()
-	{
-		bingoOverlay.setShowBingo(false);
-		openBingoOption.setMenuOption("Show");
+		this.bingoOverlay.onWidgetMenuOptionClicked(event);
 	}
 }

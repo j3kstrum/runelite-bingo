@@ -8,7 +8,12 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.WidgetMenuOptionClicked;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.input.*;
+import net.runelite.client.menus.MenuManager;
+import net.runelite.client.menus.WidgetMenuOption;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -17,7 +22,11 @@ import net.runelite.client.ui.overlay.components.BackgroundComponent;
 
 import javax.annotation.Nullable;
 import javax.inject.Singleton;
+import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
@@ -45,6 +54,8 @@ public class MinigameDisplayContainer extends Overlay {
     private final Client client;
     private final IMinigamePlugin plugin;
     private final MinigameCloseButtonHandler closeButtonHandler;
+    private final MinigameInputListener inputListener;
+    private MenuManager menuManager;
 
     private final ArrayList<IDisplayableMinigame> loadedMinigames = new ArrayList<>();
     // current minigame index - index of the minigame being displayed right now.
@@ -52,9 +63,13 @@ public class MinigameDisplayContainer extends Overlay {
     // first tab index - index of the first tab on the screen.
     private int firstTabIndex = 0;
     private static final int MAX_RENDERABLE_TILES = 9;
+    private KeyManager keyManager;
+    private MouseManager mouseManager;
 
-    private volatile boolean showMap = false;
+    private volatile boolean showOverlay = false;
     private final BackgroundComponent backgroundComponent = new BackgroundComponent();
+
+    private final WidgetMenuOption menuOption = new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.MINIMAP_WORLDMAP_OPTIONS);
 
     private BufferedImage cachedImage = null;
 
@@ -65,6 +80,7 @@ public class MinigameDisplayContainer extends Overlay {
     private Rectangle closeButtonBounds;
 
     public MinigameDisplayContainer(Client client, IMinigamePlugin plugin) {
+        this.inputListener = new MinigameInputListener(this);
         this.client = client;
         this.plugin = plugin;
         this.closeButtonHandler = new MinigameCloseButtonHandler(plugin.getSpriteManager());
@@ -74,12 +90,84 @@ public class MinigameDisplayContainer extends Overlay {
         backgroundComponent.setFill(true);
     }
 
+    public void registerInputListener(KeyManager keyManager, MouseManager mouseManager) {
+        this.unregisterInputListeners();
+        keyManager.registerKeyListener(inputListener);
+        mouseManager.registerMouseListener(inputListener);
+        mouseManager.registerMouseWheelListener(inputListener);
+        this.keyManager = keyManager;
+        this.mouseManager = mouseManager;
+    }
+
+    public void unregisterInputListeners() {
+        if (this.keyManager != null) {
+            this.keyManager.unregisterKeyListener(inputListener);
+            this.keyManager = null;
+        }
+        if (this.mouseManager != null) {
+            this.mouseManager.unregisterMouseListener(inputListener);
+            this.mouseManager.unregisterMouseWheelListener(inputListener);
+            this.mouseManager = null;
+        }
+    }
+
     public void requestRedraw() {
         this.redraw = true;
     }
 
     public boolean isOverlayShown() {
-        return showMap;
+        return showOverlay;
+    }
+
+    public void onWidgetMenuOptionClicked(WidgetMenuOptionClicked event)
+    {
+        if (event.getWidget() != WidgetInfo.MINIMAP_WORLDMAP_OPTIONS)
+        {
+            return;
+        }
+
+        if (clickedOptionEquals(event, this.menuOption))
+        {
+            if (this.isOverlayShown())
+            {
+                closeOverlay();
+            }
+            else
+            {
+                openOverlay();
+            }
+        }
+    }
+
+    public void addCustomOptions(MenuManager menuManager)
+    {
+        menuManager.addManagedCustomMenu(this.menuOption);
+        this.menuManager = menuManager;
+    }
+
+    public void removeCustomOptions()
+    {
+        if (this.menuManager != null) {
+            this.menuManager.removeManagedCustomMenu(this.menuOption);
+        }
+        this.menuManager = null;
+    }
+
+    private boolean clickedOptionEquals(WidgetMenuOptionClicked event, WidgetMenuOption widgetMenuOption)
+    {
+        return event.getMenuOption().equals(widgetMenuOption.getMenuOption()) && event.getMenuTarget().equals(widgetMenuOption.getMenuTarget());
+    }
+
+    public void openOverlay()
+    {
+        this.setDisplayOverlay(true);
+        this.menuOption.setMenuOption("Hide");
+    }
+
+    public void closeOverlay()
+    {
+        this.setDisplayOverlay(false);
+        this.menuOption.setMenuOption("Show");
     }
 
     /**
@@ -88,14 +176,14 @@ public class MinigameDisplayContainer extends Overlay {
      *
      * @param show Whether or not the map should be shown.
      */
-    public synchronized void setShowBingo(boolean show) {
-        showMap = show;
+    private synchronized void setDisplayOverlay(boolean show) {
+        showOverlay = show;
         redraw = true;
     }
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (!showMap) {
+        if (!showOverlay) {
             return null;
         }
 
@@ -181,5 +269,101 @@ class MinigameCloseButtonHandler {
             closeButtonHoveredImage = spriteManager.getSprite(WINDOW_CLOSE_BUTTON_RED_X_HOVERED, 0);
         }
         return closeButtonHoveredImage;
+    }
+}
+
+class MinigameInputListener extends MouseAdapter implements KeyListener, MouseWheelListener
+{
+    private final MinigameDisplayContainer overlay;
+
+    MinigameInputListener(MinigameDisplayContainer overlay) {
+        this.overlay = overlay;
+    }
+
+    @Override
+    public void keyTyped(KeyEvent event)
+    {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent event)
+    {
+        if (!overlay.isOverlayShown())
+        {
+            return;
+        }
+
+        if (event.getKeyCode() == KeyEvent.VK_ESCAPE)
+        {
+            overlay.closeOverlay();
+            event.consume();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent event)
+    {
+
+    }
+
+    @Override
+    public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event)
+    {
+        return event;
+    }
+
+    @Override
+    public MouseEvent mouseClicked(MouseEvent event)
+    {
+        if (!overlay.isOverlayShown() || isNotWithinOverlay(event.getPoint()))
+        {
+            return event;
+        }
+
+        event.consume();
+        return event;
+    }
+
+    @Override
+    public MouseEvent mousePressed(MouseEvent event)
+    {
+        if (!overlay.isOverlayShown() || isNotWithinOverlay(event.getPoint()))
+        {
+            return event;
+        }
+
+        if (SwingUtilities.isLeftMouseButton(event) && isWithinCloseButton(event.getPoint()))
+        {
+            overlay.closeOverlay();
+        }
+
+        event.consume();
+        return event;
+    }
+
+    @Override
+    public MouseEvent mouseMoved(MouseEvent event)
+    {
+        if (overlay.isOverlayShown())
+        {
+            overlay.setCloseButtonHovered(isWithinCloseButton(event.getPoint()));
+        }
+
+        return event;
+    }
+
+    private boolean isNotWithinOverlay(final Point point)
+    {
+        return !overlay.getBounds().contains(point);
+    }
+
+    private boolean isWithinCloseButton(final Point point)
+    {
+        Point overlayPoint = new Point(point.x - (int) overlay.getBounds().getX(),
+                point.y - (int) overlay.getBounds().getY());
+
+        return overlay.getCloseButtonBounds() != null
+                && overlay.getCloseButtonBounds().contains(overlayPoint);
     }
 }

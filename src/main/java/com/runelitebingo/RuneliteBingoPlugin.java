@@ -109,7 +109,7 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 	@Override
 	public void configure(Binder binder)
 	{
-		binder.bind(MinigameDisplayContainer.class);
+//		binder.bind(MinigameDisplayContainer.class);
 	}
 
 	@Override

@@ -1,31 +1,33 @@
 package com.runeliteminigame.tasks;
 
 import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.pluginlisteners.ICombatListener;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.ItemID;
 import net.runelite.api.NPC;
 import net.runelite.client.ui.overlay.components.TextComponent;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.Buffer;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
 import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 
-public class CombatTask implements IRunescapeTask {
+public class CombatTask implements IRunescapeTask, ICombatListener {
 
-    private final CombatTaskElement target;
-    private final int amount;
-    private int progress;
-    private BufferedImage taskImage;
+    public static final String COMBAT_MINI_GAME_TASK = "combat";
+
+    private static final float DEFAULT_MIN_FRACTION_DAMAGE = 0.5f;
     private static final BufferedImage TASK_COMPLETE_IMAGE;
 
     static {
+        // Sets the "task complete" image.
         BufferedImage completionImage;
         URL taskCompleteURL = CombatTask.class.getClassLoader().getResource("checkmark.png");
 
@@ -48,9 +50,13 @@ public class CombatTask implements IRunescapeTask {
         TASK_COMPLETE_IMAGE = completionImage;
     }
 
-    public static final String COMBAT_MINIGAME_TASK = "combat";
+    private final CombatTaskElement target;
+    private final int amount;
+    private int progress;
+
+    private BufferedImage taskImage;
+
     private final float minFractionDamage;
-    private static final float DEFAULT_MIN_FRACTION_DAMAGE = 0.5f;
     private IMinigamePlugin pluginSubscribedTo;
 
     public CombatTask(String targetName, int quantity, IMinigamePlugin plugin) {
@@ -139,7 +145,7 @@ public class CombatTask implements IRunescapeTask {
     @Override
     public Dictionary<String, Object> serializedTask() {
         Dictionary<String, Object> ret = new Hashtable<>();
-        ret.put(TASK_TYPE, COMBAT_MINIGAME_TASK);
+        ret.put(TASK_TYPE, COMBAT_MINI_GAME_TASK);
         ret.put("targetName", this.target.getName());
         ret.put("amount", this.amount);
         ret.put("progress", this.progress);
@@ -147,7 +153,7 @@ public class CombatTask implements IRunescapeTask {
     }
 
     public static CombatTask loadFrom(Dictionary<String, Object> serialized, IMinigamePlugin plugin) {
-        assert serialized.get(TASK_TYPE).equals(COMBAT_MINIGAME_TASK);
+        assert serialized.get(TASK_TYPE).equals(COMBAT_MINI_GAME_TASK);
         CombatTask task = new CombatTask((String)serialized.get("targetName"), (int)serialized.get("amount"), plugin);
         task.progress = (int)serialized.get("progress");
         return task;

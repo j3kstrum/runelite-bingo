@@ -48,7 +48,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
                 Dictionary<String, Object> taskSpec = taskSpecs[row][col];
                 IRunescapeTask task;
                 switch ((String)taskSpec.get(IRunescapeTask.TASK_TYPE)) {
-                    case CombatTask.COMBAT_MINIGAME_TASK:
+                    case CombatTask.COMBAT_MINI_GAME_TASK:
                         task = CombatTask.loadFrom(taskSpec, plugin);
                         break;
                     default:

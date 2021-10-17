@@ -58,7 +58,6 @@ class MinigameInputListener extends MouseAdapter implements KeyListener, MouseWh
             return event;
         }
 
-        event.consume();
         return event;
     }
 
@@ -70,9 +69,10 @@ class MinigameInputListener extends MouseAdapter implements KeyListener, MouseWh
 
         if (SwingUtilities.isLeftMouseButton(event) && isWithinCloseButton(event.getPoint())) {
             overlay.closeOverlay();
+            event.consume();
+            return event;
         }
 
-        event.consume();
         return event;
     }
 

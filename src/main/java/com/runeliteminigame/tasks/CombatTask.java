@@ -2,15 +2,19 @@ package com.runeliteminigame.tasks;
 
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.pluginlisteners.ICombatListener;
+import com.runeliteminigame.util.CommonImages;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.ItemID;
 import net.runelite.api.NPC;
+import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.overlay.components.BackgroundComponent;
 import net.runelite.client.ui.overlay.components.TextComponent;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
@@ -24,37 +28,13 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
     public static final String COMBAT_MINI_GAME_TASK = "combat";
 
     private static final float DEFAULT_MIN_FRACTION_DAMAGE = 0.5f;
-    private static final BufferedImage TASK_COMPLETE_IMAGE;
-
-    static {
-        // Sets the "task complete" image.
-        BufferedImage completionImage;
-        URL taskCompleteURL = CombatTask.class.getClassLoader().getResource("checkmark.png");
-
-        BufferedImage backupImage = new BufferedImage(1, 1, TYPE_INT_ARGB);
-        Graphics g = backupImage.getGraphics();
-        g.setColor(Color.GREEN);
-        g.drawRect(0, 0, 1, 1);
-
-        if (taskCompleteURL == null) {
-            completionImage = backupImage;
-        }
-        else {
-            try {
-                completionImage = ImageIO.read(taskCompleteURL);
-            } catch (IOException ioe) {
-                completionImage = backupImage;
-            }
-        }
-
-        TASK_COMPLETE_IMAGE = completionImage;
-    }
 
     private final CombatTaskElement target;
     private final int amount;
     private int progress;
 
     private BufferedImage taskImage;
+    private final BackgroundComponent backgroundComponent;
 
     private final float minFractionDamage;
     private IMinigamePlugin pluginSubscribedTo;
@@ -69,6 +49,8 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
         this.target = CombatTaskElement.TASK_FROM_ID.get(targetName);
         this.minFractionDamage = minFractionDamage;
         this.pluginSubscribedTo = plugin;
+        this.backgroundComponent = new BackgroundComponent();
+        backgroundComponent.setFill(false);
         plugin.registerPlayerKilledNPCListener(this);
     }
 
@@ -107,16 +89,17 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
         retrievedImage.getGraphics().drawImage(taskImage, 0, 0, null);
 
         if (isCompleted()) {
-            BufferedImage completedImage = ImageUtils.scale(TASK_COMPLETE_IMAGE, taskImage.getWidth(), taskImage.getHeight());
+            BufferedImage completedImage = ImageUtils.scale(CommonImages.getTaskCompleteImage(), taskImage.getWidth(), taskImage.getHeight());
             retrievedImage.getGraphics().drawImage(completedImage, 0, 0, null);
         } else {
             // Add image for the quantity.
             String amountLeftText = String.valueOf(this.amount - this.progress);
             TextComponent amountLeft = new TextComponent();
+            amountLeft.setFont(FontManager.getRunescapeBoldFont());
             amountLeft.setText(amountLeftText);
 
             // Location is bottom-right corner.
-            Point startCoordinates = ImageUtils.bottomRightAlignedPoints(amountLeftText, retrievedImage);
+            Point startCoordinates = ImageUtils.bottomRightAlignedPoints(amountLeftText, retrievedImage, FontManager.getRunescapeBoldFont());
 
             if (startCoordinates.x < 0 || startCoordinates.y < 0) {
                 // Don't draw if the start y or x are invalid - just return the original.
@@ -126,7 +109,17 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
             amountLeft.setPosition(startCoordinates);
             amountLeft.render(retrievedImage.createGraphics());
         }
-        return retrievedImage;
+
+        // Now, scale down to 3/4 size and add the background image.
+        BufferedImage outputImage = new BufferedImage(retrievedImage.getWidth(), retrievedImage.getHeight(), TYPE_INT_ARGB);
+        BufferedImage scaledMainImage = ImageUtils.scale(retrievedImage, retrievedImage.getWidth() * 3 / 4 , retrievedImage.getHeight() * 3 / 4);
+
+        backgroundComponent.setRectangle(new Rectangle(0, 0, outputImage.getWidth(), outputImage.getHeight()));
+        backgroundComponent.render(outputImage.createGraphics());
+
+        outputImage.getGraphics().drawImage(scaledMainImage, outputImage.getWidth() / 8, outputImage.getHeight() / 8, null);
+
+        return outputImage;
     }
 
     @Override
@@ -135,9 +128,9 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
         if (completed && pluginSubscribedTo != null) {
             // Completely disassociate from the listener.
             pluginSubscribedTo.removePlayerKilledNPCListener(this);
-            pluginSubscribedTo = null;
             // Final redraw at total completion.
             this.requestRedraw();
+            pluginSubscribedTo = null;
         }
         return completed;
     }

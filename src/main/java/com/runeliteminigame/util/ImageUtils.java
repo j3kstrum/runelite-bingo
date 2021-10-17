@@ -1,18 +1,24 @@
 package com.runeliteminigame.util;
 
+import com.runeliteminigame.tasks.CombatTask;
 import net.runelite.client.ui.FontManager;
 
+import javax.imageio.ImageIO;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Point;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.URL;
 
 /**
  * Class containing static methods designed to simplify image-related transformation and utility functions.
  */
 public class ImageUtils {
+
+    private static final BufferedImage EMPTY_IMAGE = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
 
     /**
      * Scales the provided image, using a Bilinear affine transformation, to the target width and height.
@@ -67,6 +73,27 @@ public class ImageUtils {
         int startY = alignedAgainst.getHeight() - fontMetrics.getHeight();
         int startX = alignedAgainst.getWidth() - fontMetrics.stringWidth(text) - fontMetrics.stringWidth(" ");
         return new Point(startX, startY);
+    }
+
+    /**
+     * Tries to load a buffered image from the provided relative path in the resources folder.
+     * If it fails, returns an empty image.
+     * @param resourceFileName The relative filepath inside of the resources folder from which the image should be loaded.
+     * @return The loaded image, or the empty image if the loaded image cannot be found.
+     */
+    public static BufferedImage loadOrReturnEmpty(String resourceFileName) {
+        URL resourceURL = CombatTask.class.getClassLoader().getResource(resourceFileName);
+
+        if (resourceURL == null) {
+            return EMPTY_IMAGE;
+        }
+        else {
+            try {
+                return ImageIO.read(resourceURL);
+            } catch (IOException ioe) {
+                return EMPTY_IMAGE;
+            }
+        }
     }
 
 }

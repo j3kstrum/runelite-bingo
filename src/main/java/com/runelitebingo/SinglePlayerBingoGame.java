@@ -4,14 +4,40 @@ import com.runeliteminigame.IDisplayableMinigame;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.tasks.CombatTask;
 import com.runeliteminigame.tasks.IRunescapeTask;
-import net.runelite.api.ItemID;
+import com.runeliteminigame.util.CommonImages;
+import com.runeliteminigame.util.ImageUtils;
+import net.runelite.api.SpriteID;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.stream.IntStream;
 
 public class SinglePlayerBingoGame implements IDisplayableMinigame {
+
+    private static final BufferedImage BINGO_IMAGE;
+
+    static {
+        // Sets the bingo image.
+        URL bingoGameIconURL = CombatTask.class.getClassLoader().getResource("bingo_game_icon.png");
+
+        if (bingoGameIconURL == null) {
+            BINGO_IMAGE = null;
+        }
+        else {
+            BufferedImage bingoImage = null;
+            try {
+                bingoImage = ImageIO.read(bingoGameIconURL);
+            } catch (IOException ioe) {
+                System.out.println("SinglePlayerBingoGame failed to load bingo game icon from local resources.");
+            } finally {
+                BINGO_IMAGE = bingoImage;
+            }
+        }
+    }
 
     private boolean cancelled = false;
     private final IRunescapeTask[][] tasks = {
@@ -31,9 +57,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
             tasks = constraint.createTasks(plugin);
         }
         for (int row = 0; row < tasks.length; row++) {
-            for (int col = 0; col < tasks[row].length; col++) {
-                game.tasks[row][col] = tasks[row][col];
-            }
+            System.arraycopy(tasks[row], 0, game.tasks[row], 0, tasks[row].length);
         }
         return game;
     }
@@ -139,7 +163,20 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     @Override
     public BufferedImage getIcon(IMinigamePlugin plugin) {
-        return plugin.getItemManager().getImage(ItemID.A_RED_CIRCLE);
+        BufferedImage bingoImage;
+        if (BINGO_IMAGE != null) {
+            bingoImage = BINGO_IMAGE;
+        }
+        else {
+            bingoImage = plugin.getSpriteManager().getSprite(SpriteID.MAP_ICON_MINIGAME, 0);
+        }
+        BufferedImage result = bingoImage;
+        if (this.isCompleted()) {
+            BufferedImage taskCompleteImage = CommonImages.getTaskCompleteImage();
+            taskCompleteImage = ImageUtils.scale(taskCompleteImage, result.getWidth() * 2 / 3, result.getHeight() * 2 / 3);
+            result.getGraphics().drawImage(taskCompleteImage, result.getWidth() / 3, result.getHeight() / 3, null);
+        }
+        return result;
     }
 
     @Override

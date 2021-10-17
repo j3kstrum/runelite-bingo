@@ -9,6 +9,7 @@ import lombok.Setter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.SpriteID;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetMenuOptionClicked;
 import net.runelite.api.widgets.WidgetInfo;
@@ -42,9 +43,26 @@ public class MinigameDisplayContainer extends Overlay {
 
     private static final int TOOLBAR_HEIGHT = 40;
     private static final int WIDGET_HEIGHT = 360;
-    private static final int WIDGET_WIDTH = TOOLBAR_HEIGHT * 12;
+    private static final int TOTAL_TILES = 12;
+    // We have left arrow, right arrow, add new button, settings icon, and room for the close interface icon.
+    private static final int MAX_RENDERABLE_TILES = TOTAL_TILES - 5;
+    private static final int WIDGET_WIDTH = TOOLBAR_HEIGHT * TOTAL_TILES;
     private static final int IMG_WIDTH = WIDGET_WIDTH;
     private static final int IMG_HEIGHT = TOOLBAR_HEIGHT + WIDGET_HEIGHT;
+
+    private static final BufferedImage LEFT_ARROW_IMAGE;
+    private static final BufferedImage RIGHT_ARROW_IMAGE;
+
+    static {
+        LEFT_ARROW_IMAGE = ImageUtils.scaleSquare(
+                ImageUtils.loadOrReturnEmpty("leftarrow.png"),
+                TOOLBAR_HEIGHT * 3 / 4
+        );
+        RIGHT_ARROW_IMAGE = ImageUtils.scaleSquare(
+                ImageUtils.loadOrReturnEmpty("rightarrow.png"),
+                TOOLBAR_HEIGHT * 3 / 4
+        );
+    }
 
     private boolean redraw;
     private final Client client;
@@ -58,7 +76,6 @@ public class MinigameDisplayContainer extends Overlay {
     private int currentMinigameIndex = 0;
     // first tab index - index of the first tab on the screen.
     private int firstTabIndex = 0;
-    private static final int MAX_RENDERABLE_TILES = 9;
     private KeyManager keyManager;
     private MouseManager mouseManager;
 
@@ -196,18 +213,11 @@ public class MinigameDisplayContainer extends Overlay {
             BufferedImage minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getGameImage(this.plugin);
             minigameImage = ImageUtils.scale(minigameImage, WIDGET_WIDTH, WIDGET_HEIGHT);
             image.getGraphics().drawImage(minigameImage, 0, TOOLBAR_HEIGHT, null);
-            // TODO: Draw the left arrow.
-            int renderTiles = Math.min(MAX_RENDERABLE_TILES, this.loadedMinigames.size());
-            for (int tilePosition = 0; tilePosition < renderTiles; tilePosition += 1) {
-                // We start at the first tab index, then wrap around the array until we exhaust it OR get all MAX_RENDERABLE_TILES drawn.
-                BufferedImage minigameTile = this.loadedMinigames.get((tilePosition + this.firstTabIndex) % this.loadedMinigames.size()).getIcon(this.plugin);
-                minigameTile = ImageUtils.scaleSquare(minigameTile, TOOLBAR_HEIGHT);
-                image.getGraphics().drawImage(minigameTile, TOOLBAR_HEIGHT * (1 + tilePosition), 0, null);
-            }
-            // TODO: Draw the right arrow.
-            // TODO: Draw the settings.
+
+            BufferedImage imageWithToolbar = this.drawToolbar(image);
+
             synchronized (this) {
-                cachedImage = image;
+                cachedImage = imageWithToolbar;
             }
 
             redraw = false;
@@ -220,7 +230,7 @@ public class MinigameDisplayContainer extends Overlay {
                     closeButton.getWidth(), closeButton.getHeight());
         }
 
-        backgroundComponent.setRectangle(new Rectangle(0, 0, cachedImage.getWidth(), cachedImage.getHeight()));
+        backgroundComponent.setRectangle(new Rectangle(-5, -5, cachedImage.getWidth() + 10, cachedImage.getHeight() + 10));
         backgroundComponent.render(graphics);
         graphics.drawImage(cachedImage, 0, 0, null);
 
@@ -233,6 +243,77 @@ public class MinigameDisplayContainer extends Overlay {
         }
 
         return new Dimension(cachedImage.getWidth(), cachedImage.getHeight());
+    }
+
+    private BufferedImage drawToolbar(BufferedImage image) {
+
+        BufferedImage bankTabSelectedImage = this.plugin.getSpriteManager().getSprite(SpriteID.BANK_TAB_SELECTED, 0);
+        BufferedImage bankTabEmptyImage = this.plugin.getSpriteManager().getSprite(SpriteID.BANK_TAB_EMPTY, 0);
+
+        // Draw the left arrow.
+        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), 0, 0, null);
+        image.getGraphics().drawImage(LEFT_ARROW_IMAGE, TOOLBAR_HEIGHT / 8, TOOLBAR_HEIGHT / 8, null);
+
+        int renderTiles = Math.min(MAX_RENDERABLE_TILES, this.loadedMinigames.size());
+        for (int tilePosition = 0; tilePosition < renderTiles; tilePosition += 1) {
+            // We start at the first tab index, then wrap around the array until we exhaust it OR get all MAX_RENDERABLE_TILES drawn.
+
+            BufferedImage backgroundImage;
+            if (tilePosition == this.currentMinigameIndex) {
+                // Draw the "selected" background.
+                backgroundImage = bankTabSelectedImage;
+            }
+            else {
+                // Draw the "empty" background.
+                // TODO: The "hovered" background.
+                backgroundImage = bankTabEmptyImage;
+            }
+            backgroundImage = ImageUtils.scaleSquare(backgroundImage, TOOLBAR_HEIGHT);
+            image.getGraphics().drawImage(backgroundImage, TOOLBAR_HEIGHT * (1 + tilePosition), 0, null);
+
+            BufferedImage minigameTile = this.loadedMinigames.get((tilePosition + this.firstTabIndex) % this.loadedMinigames.size()).getIcon(this.plugin);
+            minigameTile = ImageUtils.scaleSquare(minigameTile, TOOLBAR_HEIGHT * 3 / 4);
+            image.getGraphics().drawImage(minigameTile, TOOLBAR_HEIGHT * (1 + tilePosition) + TOOLBAR_HEIGHT / 8, TOOLBAR_HEIGHT / 8, null);
+        }
+
+        // Draw the backgrounds for all tabs, regardless of whether or not they're selected.
+        BufferedImage scaledBankTabEmptyImage = ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT);
+        for (int tilePosition = renderTiles + 1; tilePosition < MAX_RENDERABLE_TILES + 1; tilePosition += 1) {
+            image.getGraphics().drawImage(scaledBankTabEmptyImage, TOOLBAR_HEIGHT * tilePosition, 0, null);
+        }
+
+        int tilePosition = MAX_RENDERABLE_TILES + 1;
+        // Draw the right arrow.
+        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), TOOLBAR_HEIGHT * tilePosition, 0, null);
+        image.getGraphics().drawImage(RIGHT_ARROW_IMAGE, TOOLBAR_HEIGHT * tilePosition + TOOLBAR_HEIGHT / 8, TOOLBAR_HEIGHT / 8, null);
+
+        tilePosition += 1;
+        // Draw add button.
+        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), TOOLBAR_HEIGHT * tilePosition, 0, null);
+        image.getGraphics().drawImage(
+                ImageUtils.scaleSquare(
+                        this.plugin.getSpriteManager().getSprite(SpriteID.BANK_ADD_TAB_ICON, 0),
+                        TOOLBAR_HEIGHT * 3 / 4
+                ),
+                TOOLBAR_HEIGHT * tilePosition + TOOLBAR_HEIGHT / 8,
+                TOOLBAR_HEIGHT / 8,
+                null
+        );
+
+        tilePosition += 1;
+        // Draw the settings.
+        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), TOOLBAR_HEIGHT * tilePosition, 0, null);
+        image.getGraphics().drawImage(
+                ImageUtils.scaleSquare(
+                        this.plugin.getSpriteManager().getSprite(SpriteID.BANK_SHOW_MENU_ICON, 0),
+                        TOOLBAR_HEIGHT * 3 / 4
+                ),
+                TOOLBAR_HEIGHT * tilePosition + TOOLBAR_HEIGHT / 8,
+                TOOLBAR_HEIGHT / 8,
+                null
+        );
+
+        return image;
     }
 
     /**

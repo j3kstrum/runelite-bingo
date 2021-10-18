@@ -82,6 +82,11 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 	}
 
 	@Override
+	public String name() {
+		return "Bingo Plugin";
+	}
+
+	@Override
 	public MouseManager getMouseManager() {
 		return this.mouseManager;
 	}

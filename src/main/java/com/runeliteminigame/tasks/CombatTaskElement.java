@@ -34,7 +34,19 @@ public enum CombatTaskElement {
                     NpcID.CHICKEN_10498,
                     NpcID.CHICKEN_10499,
                     NpcID.CHICKEN_10556
-            ))
+            )),
+            new CombatTaskElement[]{}
+    ),
+    UNDEAD_COW(
+            "Undead Cow",
+            8,
+            ItemID.UNDEAD_COW_RIBS,
+            2,
+            new HashSet<>(Arrays.asList(
+                    NpcID.UNDEAD_COW_4421,
+                    NpcID.UNDEAD_COW
+            )),
+            new CombatTaskElement[]{}
     ),
     COW(
             "Cow",
@@ -50,9 +62,11 @@ public enum CombatTaskElement {
                     NpcID.COW_6401,
                     NpcID.COW_10598,
                     NpcID.PLAGUE_COW_4190,
-                    NpcID.PLAGUE_COW_4191,
-                    NpcID.UNDEAD_COW_4421
-            ))
+                    NpcID.PLAGUE_COW_4191
+            )),
+            new CombatTaskElement[]{
+                    UNDEAD_COW
+            }
     );
 
     static final Dictionary<String, CombatTaskElement> TASK_FROM_ID;
@@ -63,12 +77,18 @@ public enum CombatTaskElement {
     private final int totalHealth;
     private final Set<Integer> npcIDs;
 
-    CombatTaskElement(String name, int totalHealth, int itemID, int maxAmount, Set<Integer> npcIDs) {
+    CombatTaskElement(String name, int totalHealth, int itemID, int maxAmount, Set<Integer> npcIDs, CombatTaskElement[] alsoIncludes) {
         this.name = name;
         this.totalHealth = totalHealth;
         this.itemID = itemID;
         this.maxAmount = maxAmount;
         this.npcIDs = npcIDs;
+        // There are some tasks that are composed of a handful of other tasks.
+        // (Example: an undead cow is also a cow.)
+        // Merge these into this task.
+        for (CombatTaskElement subTask: alsoIncludes) {
+            this.npcIDs.addAll(subTask.npcIDs);
+        }
     }
 
     public int getTotalHealth() {

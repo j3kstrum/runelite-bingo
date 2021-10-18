@@ -11,77 +11,44 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 
 class MinigameInputListener extends MouseAdapter implements KeyListener, MouseWheelListener {
-    private final MinigameDisplayContainer overlay;
+    private final MinigameDisplayContainer minigameDisplayContainer;
 
-    MinigameInputListener(MinigameDisplayContainer overlay) {
-        this.overlay = overlay;
-    }
-
-    private boolean isNotWithinOverlay(final Point point) {
-        return !overlay.getBounds().contains(point);
-    }
-
-    private boolean isWithinCloseButton(final Point point) {
-        Point overlayPoint = new Point(point.x - (int) overlay.getBounds().getX(),
-                point.y - (int) overlay.getBounds().getY());
-
-        return overlay.getCloseButtonBounds() != null
-                && overlay.getCloseButtonBounds().contains(overlayPoint);
+    MinigameInputListener(MinigameDisplayContainer minigameDisplayContainer) {
+        this.minigameDisplayContainer = minigameDisplayContainer;
     }
 
     @Override
-    public void keyTyped(KeyEvent event) {}
+    public void keyTyped(KeyEvent event) {
+        minigameDisplayContainer.keyTyped(event);
+    }
 
     @Override
     public void keyPressed(KeyEvent event) {
-        if (!overlay.isOverlayShown()) {
-            return;
-        }
-
-        if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            overlay.closeOverlay();
-            event.consume();
-        }
+        minigameDisplayContainer.keyPressed(event);
     }
 
     @Override
-    public void keyReleased(KeyEvent event) {}
+    public void keyReleased(KeyEvent event) {
+        minigameDisplayContainer.keyReleased(event);
+    }
 
     @Override
     public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event) {
-        return event;
+        return minigameDisplayContainer.mouseWheelMoved(event, null);
     }
 
     @Override
     public MouseEvent mouseClicked(MouseEvent event) {
-        if (!overlay.isOverlayShown() || isNotWithinOverlay(event.getPoint())) {
-            return event;
-        }
-
-        return event;
+        return minigameDisplayContainer.mouseClicked(event, null);
     }
 
     @Override
     public MouseEvent mousePressed(MouseEvent event) {
-        if (!overlay.isOverlayShown() || isNotWithinOverlay(event.getPoint())) {
-            return event;
-        }
-
-        if (SwingUtilities.isLeftMouseButton(event) && isWithinCloseButton(event.getPoint())) {
-            overlay.closeOverlay();
-            event.consume();
-            return event;
-        }
-
-        return event;
+        return minigameDisplayContainer.mousePressed(event, null);
     }
 
     @Override
     public MouseEvent mouseMoved(MouseEvent event) {
-        if (overlay.isOverlayShown()) {
-            overlay.setCloseButtonHovered(isWithinCloseButton(event.getPoint()));
-        }
-
-        return event;
+        return minigameDisplayContainer.mouseMoved(event, null);
     }
 }

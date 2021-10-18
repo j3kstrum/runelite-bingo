@@ -1,7 +1,8 @@
 package com.runelitebingo;
 
-import com.runeliteminigame.IDisplayableMinigame;
+import com.runeliteminigame.display.IDisplayableMinigame;
 import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.display.RelativeMinigameComponentStruct;
 import com.runeliteminigame.tasks.CombatTask;
 import com.runeliteminigame.tasks.IRunescapeTask;
 import com.runeliteminigame.util.CommonImages;
@@ -9,6 +10,10 @@ import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.SpriteID;
 
 import javax.imageio.ImageIO;
+import java.awt.Point;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
@@ -180,7 +185,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     }
 
     @Override
-    public BufferedImage getGameImage(IMinigamePlugin plugin) {
+    public BufferedImage getMainImage(IMinigamePlugin plugin) {
         BufferedImage[][] images = new BufferedImage[tasks.length][tasks[0].length];
         for (int row = 0; row < images.length; row++) {
             for (int col = 0; col < images[row].length; col++) {
@@ -221,5 +226,48 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         }
 
         return outputImage;
+    }
+
+    @Override
+    public void keyTyped(KeyEvent event) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent event) {
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent event) {
+
+    }
+
+    @Override
+    public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event, Point relativeOffset) {
+        return event;
+    }
+
+    @Override
+    public MouseEvent mouseClicked(MouseEvent event, Point relativeOffset) {
+        // TODO: When clicking a task, get task details and change task bank tab to selected.
+        // If the task's details are already showing, de-highlight the tab and show the game's details instead.
+        return event;
+    }
+
+    @Override
+    public MouseEvent mousePressed(MouseEvent event, Point relativeOffset) {
+        return event;
+    }
+
+    @Override
+    public MouseEvent mouseMoved(MouseEvent event, Point relativeOffset) {
+        // TODO: When hovering over a task, change task bank tab to highlighted and display a tooltip.
+        return event;
+    }
+
+    @Override
+    public RelativeMinigameComponentStruct getSubComponentAtPoint(Point relativeOffset) {
+        return new RelativeMinigameComponentStruct();
     }
 }

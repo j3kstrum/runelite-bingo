@@ -20,4 +20,6 @@ public interface IMinigamePlugin {
     MenuManager getMenuManager();
 
     void requestRedraw();
+
+    String name();
 }

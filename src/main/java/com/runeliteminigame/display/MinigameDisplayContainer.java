@@ -1,15 +1,11 @@
 package com.runeliteminigame.display;
 
 import com.runelitebingo.SinglePlayerBingoGame;
-import com.runeliteminigame.IDisplayableMinigame;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.util.ImageUtils;
-import lombok.Getter;
-import lombok.Setter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
-import net.runelite.api.SpriteID;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetMenuOptionClicked;
 import net.runelite.api.widgets.WidgetInfo;
@@ -26,7 +22,11 @@ import net.runelite.client.ui.overlay.components.BackgroundComponent;
 import javax.inject.Singleton;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
@@ -39,35 +39,16 @@ import java.util.ArrayList;
  * (Archiving detaches a game from the display until it's re-added).
  */
 @Singleton
-public class MinigameDisplayContainer extends Overlay {
+public class MinigameDisplayContainer extends Overlay implements IMinigameInputHandler {
 
-    private static final int TOOLBAR_HEIGHT = 40;
     private static final int WIDGET_HEIGHT = 360;
-    private static final int TOTAL_TILES = 12;
-    // We have left arrow, right arrow, add new button, settings icon, and room for the close interface icon.
-    private static final int MAX_RENDERABLE_TILES = TOTAL_TILES - 5;
-    private static final int WIDGET_WIDTH = TOOLBAR_HEIGHT * TOTAL_TILES;
+    private static final int WIDGET_WIDTH = MinigameToolbar.getToolbarHeight() * MinigameToolbar.getTotalTiles();
     private static final int IMG_WIDTH = WIDGET_WIDTH;
-    private static final int IMG_HEIGHT = TOOLBAR_HEIGHT + WIDGET_HEIGHT;
-
-    private static final BufferedImage LEFT_ARROW_IMAGE;
-    private static final BufferedImage RIGHT_ARROW_IMAGE;
-
-    static {
-        LEFT_ARROW_IMAGE = ImageUtils.scaleSquare(
-                ImageUtils.loadOrReturnEmpty("leftarrow.png"),
-                TOOLBAR_HEIGHT * 3 / 4
-        );
-        RIGHT_ARROW_IMAGE = ImageUtils.scaleSquare(
-                ImageUtils.loadOrReturnEmpty("rightarrow.png"),
-                TOOLBAR_HEIGHT * 3 / 4
-        );
-    }
+    private static final int IMG_HEIGHT = MinigameToolbar.getToolbarHeight() + WIDGET_HEIGHT;
 
     private boolean redraw;
     private final Client client;
     private final IMinigamePlugin plugin;
-    private final MinigameCloseButtonHandler closeButtonHandler;
     private final MinigameInputListener inputListener;
     private MenuManager menuManager;
 
@@ -78,6 +59,7 @@ public class MinigameDisplayContainer extends Overlay {
     private int firstTabIndex = 0;
     private KeyManager keyManager;
     private MouseManager mouseManager;
+    private final MinigameToolbar minigameToolbar;
 
     private volatile boolean showOverlay = false;
     private final BackgroundComponent backgroundComponent = new BackgroundComponent();
@@ -86,23 +68,19 @@ public class MinigameDisplayContainer extends Overlay {
 
     private BufferedImage cachedImage = null;
 
-    @Setter
-    private boolean isCloseButtonHovered;
-
-    @Getter
-    private Rectangle closeButtonBounds;
+    private Point previousRelativePoint = new Point(0, 0);
 
     public MinigameDisplayContainer(Client client, IMinigamePlugin plugin) {
         this.inputListener = new MinigameInputListener(this);
         this.client = client;
         this.plugin = plugin;
-        this.closeButtonHandler = new MinigameCloseButtonHandler(plugin.getSpriteManager());
         setPriority(OverlayPriority.HIGH);
         setPosition(OverlayPosition.TOP_CENTER);
         setLayer(OverlayLayer.ABOVE_WIDGETS);
         backgroundComponent.setFill(true);
         this.registerInputListener(plugin.getKeyManager(), plugin.getMouseManager());
         this.addCustomOptions(plugin.getMenuManager());
+        this.minigameToolbar = new MinigameToolbar(plugin, this);
     }
 
     private void registerInputListener(KeyManager keyManager, MouseManager mouseManager) {
@@ -170,6 +148,40 @@ public class MinigameDisplayContainer extends Overlay {
         this.redraw = true;
     }
 
+    void showSettings() {
+        System.out.println("Minigame settings are not yet available.");
+    }
+
+    void addMinigame() {
+        // TODO: To future-proof, would probably need to have a "BaseMinigame".
+        // Its sole purpose would be to select a new minigame type from all candidates.
+        // It would allow for the user to specify constraints for the new game.
+        this.loadedMinigames.add(SinglePlayerBingoGame.createGame(null, this.plugin));
+    }
+
+    void trySetActive(IDisplayableMinigame game) {
+        if (!this.loadedMinigames.contains(game)) {
+            System.out.println("Error: could not find minigame in loaded games list.");
+            return;
+        }
+        if (this.loadedMinigames.indexOf(game) != this.currentMinigameIndex) {
+            this.currentMinigameIndex = this.loadedMinigames.indexOf(game);
+            this.requestRedraw();
+            // todo remove debug statement.
+            System.out.println("current minigame index now set to " + this.currentMinigameIndex);
+        }
+    }
+
+    IDisplayableMinigame getOffsetMinigame(int index) {
+        if (index >= this.loadedMinigames.size()) {
+            // If the index is longer than our minigame list, it's out of bounds.
+            return null;
+        }
+        // However, it could be wrapped if it's within the proper range. Unwrap to absolute.
+        int absoluteIndex = (this.currentMinigameIndex + index) % this.loadedMinigames.size();
+        return this.loadedMinigames.get(absoluteIndex);
+    }
+
     public void onWidgetMenuOptionClicked(WidgetMenuOptionClicked event)
     {
         if (event.getWidget() != WidgetInfo.MINIMAP_WORLDMAP_OPTIONS)
@@ -190,13 +202,13 @@ public class MinigameDisplayContainer extends Overlay {
         }
     }
 
-    public void openOverlay()
+    private void openOverlay()
     {
         this.setDisplayOverlay(true);
         this.menuOption.setMenuOption("Hide");
     }
 
-    public void closeOverlay()
+    void closeOverlay()
     {
         this.setDisplayOverlay(false);
         this.menuOption.setMenuOption("Show");
@@ -210,110 +222,28 @@ public class MinigameDisplayContainer extends Overlay {
 
         if (redraw || cachedImage == null) {
             BufferedImage image = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            BufferedImage minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getGameImage(this.plugin);
+            BufferedImage minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(this.plugin);
             minigameImage = ImageUtils.scale(minigameImage, WIDGET_WIDTH, WIDGET_HEIGHT);
-            image.getGraphics().drawImage(minigameImage, 0, TOOLBAR_HEIGHT, null);
+            image.getGraphics().drawImage(minigameImage, 0, MinigameToolbar.getToolbarHeight(), null);
 
-            BufferedImage imageWithToolbar = this.drawToolbar(image);
+            BufferedImage toolbarImage = this.minigameToolbar.drawToolbar(
+                    this.loadedMinigames, this.firstTabIndex, this.currentMinigameIndex
+            );
+            toolbarImage = ImageUtils.scale(toolbarImage, IMG_WIDTH, MinigameToolbar.getToolbarHeight());
+            image.getGraphics().drawImage(toolbarImage, 0, 0, null);
 
             synchronized (this) {
-                cachedImage = imageWithToolbar;
+                cachedImage = image;
             }
 
             redraw = false;
-        }
-
-        BufferedImage closeButton = closeButtonHandler.getCloseButtonImage();
-        BufferedImage closeButtonHover = closeButtonHandler.getCloseButtonHoveredImage();
-        if (closeButton != null && closeButtonBounds == null) {
-            closeButtonBounds = new Rectangle(cachedImage.getWidth() - closeButton.getWidth() - 5, 6,
-                    closeButton.getWidth(), closeButton.getHeight());
         }
 
         backgroundComponent.setRectangle(new Rectangle(-5, -5, cachedImage.getWidth() + 10, cachedImage.getHeight() + 10));
         backgroundComponent.render(graphics);
         graphics.drawImage(cachedImage, 0, 0, null);
 
-        if (isCloseButtonHovered) {
-            closeButton = closeButtonHover;
-        }
-
-        if (closeButton != null) {
-            graphics.drawImage(closeButton, (int) closeButtonBounds.getX(), (int) closeButtonBounds.getY(), null);
-        }
-
-        return new Dimension(cachedImage.getWidth(), cachedImage.getHeight());
-    }
-
-    private BufferedImage drawToolbar(BufferedImage image) {
-
-        BufferedImage bankTabSelectedImage = this.plugin.getSpriteManager().getSprite(SpriteID.BANK_TAB_SELECTED, 0);
-        BufferedImage bankTabEmptyImage = this.plugin.getSpriteManager().getSprite(SpriteID.BANK_TAB_EMPTY, 0);
-
-        // Draw the left arrow.
-        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), 0, 0, null);
-        image.getGraphics().drawImage(LEFT_ARROW_IMAGE, TOOLBAR_HEIGHT / 8, TOOLBAR_HEIGHT / 8, null);
-
-        int renderTiles = Math.min(MAX_RENDERABLE_TILES, this.loadedMinigames.size());
-        for (int tilePosition = 0; tilePosition < renderTiles; tilePosition += 1) {
-            // We start at the first tab index, then wrap around the array until we exhaust it OR get all MAX_RENDERABLE_TILES drawn.
-
-            BufferedImage backgroundImage;
-            if (tilePosition == this.currentMinigameIndex) {
-                // Draw the "selected" background.
-                backgroundImage = bankTabSelectedImage;
-            }
-            else {
-                // Draw the "empty" background.
-                // TODO: The "hovered" background.
-                backgroundImage = bankTabEmptyImage;
-            }
-            backgroundImage = ImageUtils.scaleSquare(backgroundImage, TOOLBAR_HEIGHT);
-            image.getGraphics().drawImage(backgroundImage, TOOLBAR_HEIGHT * (1 + tilePosition), 0, null);
-
-            BufferedImage minigameTile = this.loadedMinigames.get((tilePosition + this.firstTabIndex) % this.loadedMinigames.size()).getIcon(this.plugin);
-            minigameTile = ImageUtils.scaleSquare(minigameTile, TOOLBAR_HEIGHT * 3 / 4);
-            image.getGraphics().drawImage(minigameTile, TOOLBAR_HEIGHT * (1 + tilePosition) + TOOLBAR_HEIGHT / 8, TOOLBAR_HEIGHT / 8, null);
-        }
-
-        // Draw the backgrounds for all tabs, regardless of whether or not they're selected.
-        BufferedImage scaledBankTabEmptyImage = ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT);
-        for (int tilePosition = renderTiles + 1; tilePosition < MAX_RENDERABLE_TILES + 1; tilePosition += 1) {
-            image.getGraphics().drawImage(scaledBankTabEmptyImage, TOOLBAR_HEIGHT * tilePosition, 0, null);
-        }
-
-        int tilePosition = MAX_RENDERABLE_TILES + 1;
-        // Draw the right arrow.
-        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), TOOLBAR_HEIGHT * tilePosition, 0, null);
-        image.getGraphics().drawImage(RIGHT_ARROW_IMAGE, TOOLBAR_HEIGHT * tilePosition + TOOLBAR_HEIGHT / 8, TOOLBAR_HEIGHT / 8, null);
-
-        tilePosition += 1;
-        // Draw add button.
-        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), TOOLBAR_HEIGHT * tilePosition, 0, null);
-        image.getGraphics().drawImage(
-                ImageUtils.scaleSquare(
-                        this.plugin.getSpriteManager().getSprite(SpriteID.BANK_ADD_TAB_ICON, 0),
-                        TOOLBAR_HEIGHT * 3 / 4
-                ),
-                TOOLBAR_HEIGHT * tilePosition + TOOLBAR_HEIGHT / 8,
-                TOOLBAR_HEIGHT / 8,
-                null
-        );
-
-        tilePosition += 1;
-        // Draw the settings.
-        image.getGraphics().drawImage(ImageUtils.scaleSquare(bankTabEmptyImage, TOOLBAR_HEIGHT), TOOLBAR_HEIGHT * tilePosition, 0, null);
-        image.getGraphics().drawImage(
-                ImageUtils.scaleSquare(
-                        this.plugin.getSpriteManager().getSprite(SpriteID.BANK_SHOW_MENU_ICON, 0),
-                        TOOLBAR_HEIGHT * 3 / 4
-                ),
-                TOOLBAR_HEIGHT * tilePosition + TOOLBAR_HEIGHT / 8,
-                TOOLBAR_HEIGHT / 8,
-                null
-        );
-
-        return image;
+        return new Dimension(cachedImage.getWidth() + 10, cachedImage.getHeight() + 10);
     }
 
     /**
@@ -326,6 +256,148 @@ public class MinigameDisplayContainer extends Overlay {
             loadedMinigames.add(SinglePlayerBingoGame.createGame(null, plugin));
             currentMinigameIndex = 0;
         }
+    }
+
+    private boolean overlayContains(final Point offsetPoint) {
+        return offsetPoint.x < IMG_WIDTH && offsetPoint.y < IMG_HEIGHT;
+    }
+
+    void rotate(boolean toTheLeft) {
+        if (toTheLeft) {
+            this.firstTabIndex++;
+        }
+        else {
+            this.firstTabIndex--;
+            if (this.firstTabIndex < 0) {
+                this.firstTabIndex += this.loadedMinigames.size();
+            }
+        }
+        this.firstTabIndex = this.firstTabIndex % this.loadedMinigames.size();
+        this.requestRedraw();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent event) {
+        if (this.isOverlayShown()) {
+            if (event.getKeyCode() == KeyEvent.VK_LEFT || event.getKeyCode() == KeyEvent.VK_RIGHT) {
+                this.minigameToolbar.keyTyped(event);
+            }
+            else {
+                // Default: pass to the minigame.
+                this.loadedMinigames.get(this.currentMinigameIndex).keyTyped(event);
+            }
+        }
+    }
+
+    @Override
+    public void keyPressed(KeyEvent event) {
+        if (this.isOverlayShown() && event.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            this.closeOverlay();
+            event.consume();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent event) {}
+
+    @Override
+    public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event, Point relativeOffset) {
+        if (relativeOffset == null) {
+            relativeOffset = this.getBounds().getLocation();
+        }
+        if (this.isOverlayShown()) {
+            Point currentLocation = event.getPoint();
+            Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
+            if (overlayContains(offsetLocation)) {
+                RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
+                if (passThroughCurrent.isValid()) {
+                    event = passThroughCurrent.handler.mouseWheelMoved(event, passThroughCurrent.offset);
+                }
+            }
+        }
+
+        return event;
+    }
+
+    @Override
+    public MouseEvent mouseClicked(MouseEvent event, Point relativeOffset) {
+        if (relativeOffset == null) {
+            relativeOffset = this.getBounds().getLocation();
+        }
+        if (this.isOverlayShown()) {
+            Point currentLocation = event.getPoint();
+            Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
+            if (overlayContains(offsetLocation)) {
+                RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
+                if (passThroughCurrent.isValid()) {
+                    event = passThroughCurrent.handler.mouseClicked(event, passThroughCurrent.offset);
+                }
+            }
+        }
+
+        return event;
+    }
+
+    @Override
+    public MouseEvent mousePressed(MouseEvent event, Point relativeOffset) {
+        if (relativeOffset == null) {
+            relativeOffset = this.getBounds().getLocation();
+        }
+        if (this.isOverlayShown()) {
+            Point currentLocation = event.getPoint();
+            Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
+            if (overlayContains(offsetLocation)) {
+                RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
+                if (passThroughCurrent.isValid()) {
+                    event = passThroughCurrent.handler.mousePressed(event, passThroughCurrent.offset);
+                }
+            }
+        }
+
+        return event;
+    }
+
+    @Override
+    public MouseEvent mouseMoved(MouseEvent event, Point relativeOffset) {
+        if (relativeOffset == null) {
+            relativeOffset = this.getBounds().getLocation();
+        }
+        if (this.isOverlayShown()) {
+            Point currentLocation = event.getPoint();
+            Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
+            if (overlayContains(offsetLocation) || overlayContains(previousRelativePoint)) {
+                RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
+                RelativeMinigameComponentStruct passThroughPrevious = this.getSubComponentAtPoint(previousRelativePoint);
+                if (passThroughCurrent.isValid()) {
+                    event = passThroughCurrent.handler.mouseMoved(event, passThroughCurrent.offset);
+                }
+                if (passThroughPrevious.isValid() && passThroughCurrent.offset != null) {
+                    event = passThroughPrevious.handler.mouseMoved(event, passThroughCurrent.offset);
+                }
+                this.previousRelativePoint = offsetLocation;
+            }
+        }
+
+        return event;
+    }
+
+    @Override
+    public RelativeMinigameComponentStruct getSubComponentAtPoint(Point relativeOffset) {
+        // The minigame display container consists of the toolbar and the game itself.
+        RelativeMinigameComponentStruct struct = new RelativeMinigameComponentStruct();
+        if (relativeOffset.x > this.getBounds().width) {
+            return struct;
+        }
+        if (relativeOffset.y < MinigameToolbar.getToolbarHeight()) {
+            struct.handler = this.minigameToolbar;
+            struct.offset = relativeOffset;
+        }
+        else
+        {
+            struct.handler = this.loadedMinigames.get(this.currentMinigameIndex);
+            struct.offset = new Point(relativeOffset.x, relativeOffset.y - MinigameToolbar.getToolbarHeight());
+        }
+        return struct;
     }
 
 }

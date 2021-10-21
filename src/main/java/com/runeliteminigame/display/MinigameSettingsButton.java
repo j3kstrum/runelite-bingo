@@ -1,9 +1,11 @@
 package com.runeliteminigame.display;
 
 import com.runeliteminigame.IMinigamePlugin;
-import net.runelite.api.ItemID;
+import net.runelite.api.SpriteID;
 
 import javax.swing.SwingUtilities;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -21,7 +23,15 @@ public class MinigameSettingsButton implements IDisplayableWithIcon, IMinigameIn
 
     @Override
     public BufferedImage getIcon(IMinigamePlugin plugin) {
-        return plugin.getItemManager().getImage(ItemID.GEAR);
+        BufferedImage sprite = plugin.getSpriteManager().getSprite(SpriteID.TAB_OPTIONS, 0);
+        // Temporarily gray out the icon, since settings aren't yet supported (Issue #24).
+        assert sprite != null;
+        BufferedImage output = new BufferedImage(sprite.getWidth(), sprite.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        AlphaComposite dimmer = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f);
+        Graphics2D graphics = output.createGraphics();
+        graphics.setComposite(dimmer);
+        graphics.drawImage(sprite, 0, 0, null);
+        return output;
     }
 
     @Override

@@ -189,7 +189,10 @@ public class MinigameToolbar implements IMinigameInputHandler {
             if (passThroughCurrent.isValid()) {
                 event = passThroughCurrent.handler.mouseClicked(event, passThroughCurrent.offset);
                 if (passThroughCurrent.handler instanceof IDisplayableMinigame) {
-                    this.displayContainer.trySetActive((IDisplayableMinigame) passThroughCurrent.handler);
+                    if (this.displayContainer.trySetActive((IDisplayableMinigame) passThroughCurrent.handler)) {
+                        // If we were able to set the minigame as the active one, consume the event.
+                        event.consume();
+                    }
                 }
                 this.plugin.requestRedraw();
             }
@@ -217,7 +220,16 @@ public class MinigameToolbar implements IMinigameInputHandler {
                 this.plugin.requestRedraw();
             }
             if (passThroughPrevious.isValid()) {
-                event = passThroughPrevious.handler.mouseMoved(event, passThroughCurrent.offset);
+
+                if (passThroughPrevious.handler == passThroughCurrent.handler) {
+                    event = passThroughPrevious.handler.mouseMoved(event, passThroughCurrent.offset);
+                }
+                else {
+                    // If the handlers are different, indicate that we moved away.
+                    // The current pass through struct won't help us, because the offset is relative to that component
+                    // and we don't have a reference to the previous component or the new offset for the old component.
+                    event = passThroughPrevious.handler.mouseMoved(event, new Point(-1, -1));
+                }
                 this.plugin.requestRedraw();
             }
             this.previousRelativePoint = relativeOffset;
@@ -248,7 +260,7 @@ public class MinigameToolbar implements IMinigameInputHandler {
                 internalHandler = rightButton;
                 break;
             default:
-                internalHandler = this.displayContainer.getOffsetMinigame(index - 1);
+                internalHandler = this.displayContainer.getDisplayedMinigame(index - 1);
                 break;
         }
         result.handler = internalHandler;

@@ -4,20 +4,15 @@ import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.pluginlisteners.ICombatListener;
 import com.runeliteminigame.util.CommonImages;
 import com.runeliteminigame.util.ImageUtils;
-import net.runelite.api.ItemID;
 import net.runelite.api.NPC;
+import net.runelite.api.SpriteID;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.components.BackgroundComponent;
 import net.runelite.client.ui.overlay.components.TextComponent;
 
-import javax.imageio.ImageIO;
-import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.URL;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -78,8 +73,8 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
             BufferedImage baseImage = this.target.getImage(plugin.getItemManager());
             // Create scaled image.
             BufferedImage scaledBaseImage = ImageUtils.scale(baseImage, baseImage.getWidth() * 2, baseImage.getHeight() * 2);
-            // Get combat overlay image. TODO: Choose a better image.
-            BufferedImage combatOverlay = plugin.getItemManager().getImage(ItemID.BRONZE_SWORD);
+            // Get combat overlay image.
+            BufferedImage combatOverlay = plugin.getSpriteManager().getSprite(SpriteID.TAB_COMBAT, 0);
             taskImage = new BufferedImage(scaledBaseImage.getWidth(), scaledBaseImage.getHeight(), TYPE_INT_ARGB);
             taskImage.getGraphics().drawImage(scaledBaseImage, 0, 0, null);
             taskImage.getGraphics().drawImage(combatOverlay, 0, 0, null);

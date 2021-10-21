@@ -159,26 +159,26 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         this.loadedMinigames.add(SinglePlayerBingoGame.createGame(null, this.plugin));
     }
 
-    void trySetActive(IDisplayableMinigame game) {
+    boolean trySetActive(IDisplayableMinigame game) {
         if (!this.loadedMinigames.contains(game)) {
             System.out.println("Error: could not find minigame in loaded games list.");
-            return;
+            return false;
         }
         if (this.loadedMinigames.indexOf(game) != this.currentMinigameIndex) {
             this.currentMinigameIndex = this.loadedMinigames.indexOf(game);
             this.requestRedraw();
-            // todo remove debug statement.
-            System.out.println("current minigame index now set to " + this.currentMinigameIndex);
+            return true;
         }
+        return true;
     }
 
-    IDisplayableMinigame getOffsetMinigame(int index) {
-        if (index >= this.loadedMinigames.size()) {
+    IDisplayableMinigame getDisplayedMinigame(int offset) {
+        if (offset >= this.loadedMinigames.size()) {
             // If the index is longer than our minigame list, it's out of bounds.
             return null;
         }
         // However, it could be wrapped if it's within the proper range. Unwrap to absolute.
-        int absoluteIndex = (this.currentMinigameIndex + index) % this.loadedMinigames.size();
+        int absoluteIndex = (this.firstTabIndex + offset) % this.loadedMinigames.size();
         return this.loadedMinigames.get(absoluteIndex);
     }
 
@@ -309,6 +309,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             Point currentLocation = event.getPoint();
             Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
             if (overlayContains(offsetLocation)) {
+                event.consume();
                 RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
                 if (passThroughCurrent.isValid()) {
                     event = passThroughCurrent.handler.mouseWheelMoved(event, passThroughCurrent.offset);
@@ -328,6 +329,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             Point currentLocation = event.getPoint();
             Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
             if (overlayContains(offsetLocation)) {
+                event.consume();
                 RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
                 if (passThroughCurrent.isValid()) {
                     event = passThroughCurrent.handler.mouseClicked(event, passThroughCurrent.offset);
@@ -347,6 +349,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             Point currentLocation = event.getPoint();
             Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
             if (overlayContains(offsetLocation)) {
+                event.consume();
                 RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
                 if (passThroughCurrent.isValid()) {
                     event = passThroughCurrent.handler.mousePressed(event, passThroughCurrent.offset);
@@ -372,9 +375,20 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
                     event = passThroughCurrent.handler.mouseMoved(event, passThroughCurrent.offset);
                 }
                 if (passThroughPrevious.isValid() && passThroughCurrent.offset != null) {
-                    event = passThroughPrevious.handler.mouseMoved(event, passThroughCurrent.offset);
+                    if (passThroughPrevious.handler == passThroughCurrent.handler) {
+                        event = passThroughPrevious.handler.mouseMoved(event, passThroughCurrent.offset);
+                    }
+                    else {
+                        // If the handlers are different, indicate that we moved away.
+                        // The current pass through struct won't help us, because the offset is relative to that component
+                        // and we don't have a reference to the previous component or the new offset for the old component.
+                        event = passThroughPrevious.handler.mouseMoved(event, new Point(-1, -1));
+                    }
                 }
                 this.previousRelativePoint = offsetLocation;
+            }
+            if (overlayContains(offsetLocation)) {
+                event.consume();
             }
         }
 

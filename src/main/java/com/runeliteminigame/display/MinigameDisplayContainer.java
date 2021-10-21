@@ -222,7 +222,12 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
 
         if (redraw || cachedImage == null) {
             BufferedImage image = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            BufferedImage minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(this.plugin);
+            BufferedImage minigameImage;
+            if (this.loadedMinigames.size() > 0) {
+                minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(this.plugin);
+            } else {
+                minigameImage = new BufferedImage(WIDGET_WIDTH, WIDGET_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+            }
             minigameImage = ImageUtils.scale(minigameImage, WIDGET_WIDTH, WIDGET_HEIGHT);
             image.getGraphics().drawImage(minigameImage, 0, MinigameToolbar.getToolbarHeight(), null);
 
@@ -251,11 +256,6 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
      */
     public void onGameStateChanged(GameStateChanged gameStateChanged) {
         redraw = true;
-        if (gameStateChanged.getGameState().equals(GameState.LOGGED_IN)) {
-            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Initializing example bingo game.", null);
-            loadedMinigames.add(SinglePlayerBingoGame.createGame(null, plugin));
-            currentMinigameIndex = 0;
-        }
     }
 
     private boolean overlayContains(final Point offsetPoint) {
@@ -263,6 +263,13 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     }
 
     void rotate(boolean toTheLeft) {
+        if (this.loadedMinigames.size() == 0) {
+            // If empty, there's nothing to rotate.
+            // Set the first tab index to the default, then redraw and return.
+            this.firstTabIndex = 0;
+            this.requestRedraw();
+            return;
+        }
         if (toTheLeft) {
             this.firstTabIndex++;
         }
@@ -282,7 +289,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             if (event.getKeyCode() == KeyEvent.VK_LEFT || event.getKeyCode() == KeyEvent.VK_RIGHT) {
                 this.minigameToolbar.keyTyped(event);
             }
-            else {
+            else if (this.loadedMinigames.size() > 0) {
                 // Default: pass to the minigame.
                 this.loadedMinigames.get(this.currentMinigameIndex).keyTyped(event);
             }
@@ -406,7 +413,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             struct.handler = this.minigameToolbar;
             struct.offset = relativeOffset;
         }
-        else
+        else if (this.loadedMinigames.size() > 0)
         {
             struct.handler = this.loadedMinigames.get(this.currentMinigameIndex);
             struct.offset = new Point(relativeOffset.x, relativeOffset.y - MinigameToolbar.getToolbarHeight());

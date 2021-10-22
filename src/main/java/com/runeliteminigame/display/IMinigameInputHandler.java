@@ -21,6 +21,8 @@ interface IMinigameInputHandler {
 
     MouseEvent mouseMoved(MouseEvent event, Point relativeOffset);
 
+    MouseEvent mouseDragged(MouseEvent event, Point relativeOffset);
+
     RelativeMinigameComponentStruct getSubComponentAtPoint(Point relativeOffset);
 }
 

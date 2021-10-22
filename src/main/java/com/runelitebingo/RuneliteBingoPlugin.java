@@ -148,7 +148,7 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 		{
 			this.playerDamageDealt.clear();
 		}
-		bingoOverlay.onGameStateChanged(event);
+		bingoOverlay.onGameStateChanged();
 	}
 
 	@Subscribe

@@ -3,7 +3,6 @@ package com.runeliteminigame.display;
 import com.runelitebingo.SinglePlayerBingoGame;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.util.ImageUtils;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetMenuOptionClicked;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.input.KeyManager;
@@ -17,6 +16,8 @@ import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.components.BackgroundComponent;
 
 import javax.inject.Singleton;
+import javax.swing.SwingUtilities;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -255,7 +256,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     /**
      * Handles game state changes and re-draws the map
      */
-    public void onGameStateChanged(GameStateChanged gameStateChanged) {
+    public void onGameStateChanged() {
         redraw = true;
     }
 
@@ -310,21 +311,8 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
 
     @Override
     public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event, Point relativeOffset) {
-        if (relativeOffset == null) {
-            relativeOffset = this.getBounds().getLocation();
-        }
-        if (this.isOverlayShown()) {
-            Point currentLocation = event.getPoint();
-            Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
-            if (overlayContains(offsetLocation)) {
-                event.consume();
-                RelativeMinigameComponentStruct passThroughCurrent = this.getSubComponentAtPoint(offsetLocation);
-                if (passThroughCurrent.isValid()) {
-                    event = passThroughCurrent.handler.mouseWheelMoved(event, passThroughCurrent.offset);
-                }
-            }
-        }
-
+        // TODO: In the future, we may want to capture the mouse wheel for zooming in.
+        // But for now, just pass it to the underlying UI.
         return event;
     }
 
@@ -353,7 +341,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         if (relativeOffset == null) {
             relativeOffset = this.getBounds().getLocation();
         }
-        if (this.isOverlayShown()) {
+        if (this.isOverlayShown() && !SwingUtilities.isMiddleMouseButton(event)) {
             Point currentLocation = event.getPoint();
             Point offsetLocation = new Point(currentLocation.x - relativeOffset.x, currentLocation.y - relativeOffset.y);
             if (overlayContains(offsetLocation)) {
@@ -366,6 +354,23 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         }
 
         return event;
+    }
+
+    @Override
+    public MouseEvent mouseDragged(MouseEvent event, Point relativeOffset) {
+        // If middle mouse is clicked, we still want the UI to be able to move/rotate.
+        if (SwingUtilities.isMiddleMouseButton(event)) {
+            // We clone the event so that we don't consume the original and can pass it to the main game.
+            this.mouseMoved(
+                    new MouseEvent((Component)event.getSource(), event.getID(), event.getWhen(), event.getModifiersEx(), event.getX(), event.getY(), event.getClickCount(), event.isPopupTrigger(), event.getButton()),
+                    relativeOffset
+            );
+            return event;
+        }
+
+        // TODO: If we ever decide to do any fancy reordering, this would be the place.
+        // For now, a "drag" is just a fancy mouse movement so that we don't disrupt the UI's graphics.
+        return this.mouseMoved(event, relativeOffset);
     }
 
     @Override

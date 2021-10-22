@@ -3,9 +3,6 @@ package com.runeliteminigame.display;
 import com.runelitebingo.SinglePlayerBingoGame;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.util.ImageUtils;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetMenuOptionClicked;
 import net.runelite.api.widgets.WidgetInfo;
@@ -47,7 +44,6 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     private static final int IMG_HEIGHT = MinigameToolbar.getToolbarHeight() + WIDGET_HEIGHT;
 
     private boolean redraw;
-    private final Client client;
     private final IMinigamePlugin plugin;
     private final MinigameInputListener inputListener;
     private MenuManager menuManager;
@@ -64,15 +60,19 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     private volatile boolean showOverlay = false;
     private final BackgroundComponent backgroundComponent = new BackgroundComponent();
 
-    private final WidgetMenuOption menuOption = new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.MINIMAP_WORLDMAP_OPTIONS);
+    private final WidgetMenuOption[] menuOptions = new WidgetMenuOption[] {
+            new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.FIXED_VIEWPORT_QUESTS_TAB),
+            new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.RESIZABLE_VIEWPORT_QUESTS_TAB),
+            // TODO: Can't currently find widget info for RESIZABLE_VIEWPORT_BOTTOM_LINE_QUEST_TAB. Maybe in the future?
+            new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE_INVENTORY_TAB)
+    };
 
     private BufferedImage cachedImage = null;
 
     private Point previousRelativePoint = new Point(0, 0);
 
-    public MinigameDisplayContainer(Client client, IMinigamePlugin plugin) {
+    public MinigameDisplayContainer(IMinigamePlugin plugin) {
         this.inputListener = new MinigameInputListener(this);
-        this.client = client;
         this.plugin = plugin;
         setPriority(OverlayPriority.HIGH);
         setPosition(OverlayPosition.TOP_CENTER);
@@ -106,14 +106,18 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
 
     private void addCustomOptions(MenuManager menuManager)
     {
-        menuManager.addManagedCustomMenu(this.menuOption);
+        for (WidgetMenuOption menuOption : menuOptions) {
+            menuManager.addManagedCustomMenu(menuOption);
+        }
         this.menuManager = menuManager;
     }
 
     private void removeCustomOptions()
     {
         if (this.menuManager != null) {
-            this.menuManager.removeManagedCustomMenu(this.menuOption);
+            for (WidgetMenuOption menuOption : menuOptions) {
+                this.menuManager.removeManagedCustomMenu(menuOption);
+            }
         }
         this.menuManager = null;
     }
@@ -184,20 +188,13 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
 
     public void onWidgetMenuOptionClicked(WidgetMenuOptionClicked event)
     {
-        if (event.getWidget() != WidgetInfo.MINIMAP_WORLDMAP_OPTIONS)
-        {
-            return;
-        }
-
-        if (clickedOptionEquals(event, this.menuOption))
-        {
-            if (this.isOverlayShown())
-            {
-                closeOverlay();
-            }
-            else
-            {
-                openOverlay();
+        for (WidgetMenuOption menuOption : this.menuOptions) {
+            if (clickedOptionEquals(event, menuOption)) {
+                if (this.isOverlayShown()) {
+                    closeOverlay();
+                } else {
+                    openOverlay();
+                }
             }
         }
     }
@@ -205,13 +202,17 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     private void openOverlay()
     {
         this.setDisplayOverlay(true);
-        this.menuOption.setMenuOption("Hide");
+        for (WidgetMenuOption menuOption : menuOptions){
+            menuOption.setMenuOption("Hide");
+        }
     }
 
     void closeOverlay()
     {
         this.setDisplayOverlay(false);
-        this.menuOption.setMenuOption("Show");
+        for (WidgetMenuOption menuOption : menuOptions){
+            menuOption.setMenuOption("Show");
+        }
     }
 
     @Override

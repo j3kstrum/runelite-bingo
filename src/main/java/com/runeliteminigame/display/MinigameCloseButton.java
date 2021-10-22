@@ -75,6 +75,11 @@ class MinigameCloseButton implements IDisplayableWithIcon, IMinigameInputHandler
     }
 
     @Override
+    public MouseEvent mouseDragged(MouseEvent event, Point relativeOffset) {
+        return this.mouseMoved(event, relativeOffset);
+    }
+
+    @Override
     public RelativeMinigameComponentStruct getSubComponentAtPoint(Point relativeOffset) {
         return new RelativeMinigameComponentStruct();
     }

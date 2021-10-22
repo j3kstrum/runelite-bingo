@@ -74,6 +74,11 @@ public class MinigameSettingsButton implements IDisplayableWithIcon, IMinigameIn
     }
 
     @Override
+    public MouseEvent mouseDragged(MouseEvent event, Point relativeOffset) {
+        return this.mouseMoved(event, relativeOffset);
+    }
+
+    @Override
     public RelativeMinigameComponentStruct getSubComponentAtPoint(Point relativeOffset) {
         return new RelativeMinigameComponentStruct();
     }

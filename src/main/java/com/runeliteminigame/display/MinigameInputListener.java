@@ -33,6 +33,11 @@ class MinigameInputListener extends MouseAdapter implements KeyListener, MouseWh
     }
 
     @Override
+    public MouseEvent mouseDragged(MouseEvent event) {
+        return minigameDisplayContainer.mouseDragged(event, null);
+    }
+
+    @Override
     public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event) {
         return minigameDisplayContainer.mouseWheelMoved(event, null);
     }

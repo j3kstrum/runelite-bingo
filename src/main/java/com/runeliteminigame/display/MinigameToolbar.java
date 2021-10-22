@@ -238,6 +238,12 @@ public class MinigameToolbar implements IMinigameInputHandler {
     }
 
     @Override
+    public MouseEvent mouseDragged(MouseEvent event, Point relativeOffset) {
+        // TODO: In the future, we may want to consider re-ordering elements with click and drag.
+        return this.mouseMoved(event, relativeOffset);
+    }
+
+    @Override
     public RelativeMinigameComponentStruct getSubComponentAtPoint(Point relativeOffset) {
         RelativeMinigameComponentStruct result = new RelativeMinigameComponentStruct();
         int index = relativeOffset.x / TOOLBAR_HEIGHT;

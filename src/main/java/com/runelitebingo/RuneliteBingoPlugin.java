@@ -130,7 +130,7 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		bingoOverlay = new MinigameDisplayContainer(this.client, this);
+		bingoOverlay = new MinigameDisplayContainer(this);
 		overlayManager.add(bingoOverlay);
 	}
 

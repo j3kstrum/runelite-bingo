@@ -414,10 +414,16 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             struct.handler = this.minigameToolbar;
             struct.offset = relativeOffset;
         }
-        else if (this.loadedMinigames.size() > 0)
-        {
-            struct.handler = this.loadedMinigames.get(this.currentMinigameIndex);
-            struct.offset = new Point(relativeOffset.x, relativeOffset.y - MinigameToolbar.getToolbarHeight());
+        else {
+            // Inside of the minigame box.
+            if (this.loadedMinigames.size() > 0)
+            {
+                struct.handler = this.loadedMinigames.get(this.currentMinigameIndex);
+                struct.offset = new Point(relativeOffset.x, relativeOffset.y - MinigameToolbar.getToolbarHeight());
+            }
+            else {
+                struct.offset = new Point(relativeOffset.x, relativeOffset.y - MinigameToolbar.getToolbarHeight());
+            }
         }
         return struct;
     }

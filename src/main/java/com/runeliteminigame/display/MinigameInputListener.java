@@ -4,8 +4,6 @@ import net.runelite.client.input.KeyListener;
 import net.runelite.client.input.MouseAdapter;
 import net.runelite.client.input.MouseWheelListener;
 
-import javax.swing.SwingUtilities;
-import java.awt.Point;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;

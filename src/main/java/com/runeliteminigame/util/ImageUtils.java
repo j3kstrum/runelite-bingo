@@ -7,7 +7,9 @@ import javax.imageio.ImageIO;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -70,8 +72,9 @@ public class ImageUtils {
      */
     public static Point bottomRightAlignedPoints(String text, BufferedImage alignedAgainst, Font font) {
         FontMetrics fontMetrics = alignedAgainst.getGraphics().getFontMetrics(font);
-        int startY = alignedAgainst.getHeight() - fontMetrics.getHeight();
-        int startX = alignedAgainst.getWidth() - fontMetrics.stringWidth(text) - fontMetrics.stringWidth(" ");
+        Rectangle2D stringRectangle = fontMetrics.getStringBounds(text, alignedAgainst.getGraphics());
+        int startY = alignedAgainst.getHeight() - (int)Math.ceil(stringRectangle.getHeight());
+        int startX = alignedAgainst.getWidth() - (int)Math.ceil(stringRectangle.getWidth());
         return new Point(startX, startY);
     }
 

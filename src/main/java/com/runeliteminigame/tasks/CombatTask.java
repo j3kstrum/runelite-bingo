@@ -10,6 +10,7 @@ import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.components.BackgroundComponent;
 import net.runelite.client.ui.overlay.components.TextComponent;
 
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -28,7 +29,8 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
     private final int amount;
     private int progress;
 
-    private BufferedImage taskImage;
+    private BufferedImage targetImage;
+    private BufferedImage taskIndicatorImage;
     private final BackgroundComponent backgroundComponent;
 
     private final float minFractionDamage;
@@ -67,52 +69,62 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
     }
 
     @Override
-    public BufferedImage getImage(IMinigamePlugin plugin) {
-        if (taskImage == null) {
-            // Get the base image.
-            BufferedImage baseImage = this.target.getImage(plugin.getItemManager());
-            // Create scaled image.
-            BufferedImage scaledBaseImage = ImageUtils.scale(baseImage, baseImage.getWidth() * 2, baseImage.getHeight() * 2);
+    public BufferedImage getImage(IMinigamePlugin plugin, Dimension requestedDimension) {
+        if (requestedDimension == null) {
+            requestedDimension = new Dimension(64, 64);
+        }
+        if (this.targetImage == null) {
+            this.targetImage = this.target.getImage(plugin.getItemManager());
+        }
+        if (this.taskIndicatorImage == null ) {
             // Get combat overlay image.
-            BufferedImage combatOverlay = plugin.getSpriteManager().getSprite(SpriteID.TAB_COMBAT, 0);
-            taskImage = new BufferedImage(scaledBaseImage.getWidth(), scaledBaseImage.getHeight(), TYPE_INT_ARGB);
-            taskImage.getGraphics().drawImage(scaledBaseImage, 0, 0, null);
-            taskImage.getGraphics().drawImage(combatOverlay, 0, 0, null);
+            this.taskIndicatorImage = plugin.getSpriteManager().getSprite(SpriteID.TAB_COMBAT, 0);
         }
 
-        BufferedImage retrievedImage = new BufferedImage(taskImage.getWidth(), taskImage.getHeight(), TYPE_INT_ARGB);
-        retrievedImage.getGraphics().drawImage(taskImage, 0, 0, null);
+        // The output image will be larger than the target image; the target will be 3/4 of the size.
+        Dimension targetImageDimension = new Dimension(requestedDimension.width * 3 / 4, requestedDimension.height * 3 / 4);
+        BufferedImage coreImage = new BufferedImage(targetImageDimension.width, targetImageDimension.height, TYPE_INT_ARGB);
+        coreImage.getGraphics().drawImage(
+                ImageUtils.scale(this.targetImage, coreImage.getWidth(), coreImage.getHeight()),
+                0,
+                0,
+                null
+        );
+        coreImage.getGraphics().drawImage(
+                ImageUtils.scale(this.taskIndicatorImage, coreImage.getWidth() / 2, coreImage.getHeight() / 2),
+                0,
+                0,
+                null
+        );
 
         if (isCompleted()) {
-            BufferedImage completedImage = ImageUtils.scale(CommonImages.getTaskCompleteImage(), taskImage.getWidth(), taskImage.getHeight());
-            retrievedImage.getGraphics().drawImage(completedImage, 0, 0, null);
+            BufferedImage completedImage = ImageUtils.scale(CommonImages.getTaskCompleteImage(), coreImage.getWidth(), coreImage.getHeight());
+            coreImage.getGraphics().drawImage(completedImage, 0, 0, null);
         } else {
             // Add image for the quantity.
             String amountLeftText = String.valueOf(this.amount - this.progress);
             TextComponent amountLeft = new TextComponent();
-            amountLeft.setFont(FontManager.getRunescapeBoldFont());
+            amountLeft.setFont(FontManager.getRunescapeFont());
             amountLeft.setText(amountLeftText);
 
             // Location is bottom-right corner.
-            Point startCoordinates = ImageUtils.bottomRightAlignedPoints(amountLeftText, retrievedImage, FontManager.getRunescapeBoldFont());
+            Point startCoordinates = ImageUtils.bottomRightAlignedPoints(amountLeftText, coreImage, FontManager.getRunescapeFont());
 
-            if (startCoordinates.x < 0 || startCoordinates.y < 0) {
+            if (startCoordinates.x >= 0 && startCoordinates.y >= 0) {
                 // Don't draw if the start y or x are invalid - just return the original.
-                return retrievedImage;
+                amountLeft.setPosition(startCoordinates);
+                amountLeft.render(coreImage.createGraphics());
             }
 
-            amountLeft.setPosition(startCoordinates);
-            amountLeft.render(retrievedImage.createGraphics());
         }
 
-        // Now, scale down to 3/4 size and add the background image.
-        BufferedImage outputImage = new BufferedImage(retrievedImage.getWidth(), retrievedImage.getHeight(), TYPE_INT_ARGB);
-        BufferedImage scaledMainImage = ImageUtils.scale(retrievedImage, retrievedImage.getWidth() * 3 / 4 , retrievedImage.getHeight() * 3 / 4);
+        // Now, put the background image in and then render the core image on top.
+        BufferedImage outputImage = new BufferedImage(requestedDimension.width, requestedDimension.height, TYPE_INT_ARGB);
 
         backgroundComponent.setRectangle(new Rectangle(0, 0, outputImage.getWidth(), outputImage.getHeight()));
         backgroundComponent.render(outputImage.createGraphics());
 
-        outputImage.getGraphics().drawImage(scaledMainImage, outputImage.getWidth() / 8, outputImage.getHeight() / 8, null);
+        outputImage.getGraphics().drawImage(coreImage, outputImage.getWidth() / 8, outputImage.getHeight() / 8, null);
 
         return outputImage;
     }
@@ -128,6 +140,18 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
             pluginSubscribedTo = null;
         }
         return completed;
+    }
+
+    @Override
+    public String getDescriptionText() {
+        return String.format(
+                "Kill %d %s. Current progress: %d of %d (%.1f%%)",
+                this.amount,
+                this.target.getNamePlural(),
+                this.progress,
+                this.amount,
+                Math.floor(100 * ((float)this.progress / this.amount))
+        );
     }
 
     @Override

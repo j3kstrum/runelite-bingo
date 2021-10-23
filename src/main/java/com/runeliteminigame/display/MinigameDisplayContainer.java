@@ -226,7 +226,10 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             BufferedImage image = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
             BufferedImage minigameImage;
             if (this.loadedMinigames.size() > 0) {
-                minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(this.plugin);
+                minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(
+                        this.plugin,
+                        new Dimension(WIDGET_WIDTH, WIDGET_HEIGHT)
+                );
             } else {
                 minigameImage = new BufferedImage(WIDGET_WIDTH, WIDGET_HEIGHT, BufferedImage.TYPE_INT_ARGB);
             }

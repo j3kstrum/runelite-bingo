@@ -72,13 +72,27 @@ public enum CombatTaskElement {
     static final Dictionary<String, CombatTaskElement> TASK_FROM_ID;
 
     private final String name;
+    private final String namePlural;
     private final int itemID;
     private final int maxAmount;
     private final int totalHealth;
     private final Set<Integer> npcIDs;
 
     CombatTaskElement(String name, int totalHealth, int itemID, int maxAmount, Set<Integer> npcIDs, CombatTaskElement[] alsoIncludes) {
+        this(
+                name,
+                name + 's',
+                totalHealth,
+                itemID,
+                maxAmount,
+                npcIDs,
+                alsoIncludes
+        );
+    }
+
+    CombatTaskElement(String name, String namePlural, int totalHealth, int itemID, int maxAmount, Set<Integer> npcIDs, CombatTaskElement[] alsoIncludes) {
         this.name = name;
+        this.namePlural = namePlural;
         this.totalHealth = totalHealth;
         this.itemID = itemID;
         this.maxAmount = maxAmount;
@@ -97,6 +111,10 @@ public enum CombatTaskElement {
 
     public String getName() {
         return this.name;
+    }
+
+    public String getNamePlural() {
+        return this.namePlural;
     }
 
     public int maxQuantity() {

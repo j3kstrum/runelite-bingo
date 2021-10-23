@@ -7,6 +7,7 @@ public class RuneliteBingoTest
 {
 	public static void main(String[] args) throws Exception
 	{
+		//noinspection unchecked
 		ExternalPluginManager.loadBuiltin(RuneliteBingoPlugin.class);
 		RuneLite.main(args);
 	}

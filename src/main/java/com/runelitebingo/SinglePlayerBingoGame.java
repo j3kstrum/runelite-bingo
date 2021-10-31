@@ -8,6 +8,7 @@ import com.runeliteminigame.tasks.IRunescapeTask;
 import com.runeliteminigame.util.CommonImages;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.SpriteID;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.components.BackgroundComponent;
 
 import javax.imageio.ImageIO;
@@ -234,22 +235,27 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     private String getDescriptionText() {
         if (this.selectedTask == null) {
-            return "Bingo minigame: Complete tasks in any order that you like. " +
-                    "You win when you complete five tasks that form a row, a column, or a diagonal line. " +
-                    "Note that four corners are not supported at this time.";
+            return "Bingo minigame: Complete tasks in " +
+                   "any order that you like. You win when " +
+                   "you complete five tasks that form a row, a column, or a diagonal line. " +
+                   "Note that four corners are not supported at this time.";
         }
         return this.tasks[selectedTask.y][selectedTask.x].getDescriptionText();
     }
 
     private BufferedImage getDescriptionImage(Dimension requestedDimension) {
+
+        int framePadding = 5;
+
         BufferedImage outputImage = new BufferedImage(requestedDimension.width, requestedDimension.height, BufferedImage.TYPE_INT_ARGB);
+        outputImage.getGraphics().setFont(FontManager.getRunescapeFont());
 
         this.backgroundComponent.render(outputImage.createGraphics());
         this.backgroundComponent.setRectangle(new Rectangle(0, 0, requestedDimension.width, requestedDimension.height));
         String descriptionText = this.getDescriptionText();
-        // TODO: Better formatting, wrapping, and positioning.
-        Rectangle2D stringRectangle = outputImage.getGraphics().getFontMetrics().getStringBounds(descriptionText, outputImage.getGraphics());
-        outputImage.getGraphics().drawString(descriptionText, 0, (int)Math.ceil(stringRectangle.getHeight()));
+        // TODO: Cache this when the text doesn't change.
+        BufferedImage descriptionImage = ImageUtils.getTextImageScrollVertical(descriptionText, outputImage.getGraphics(), Math.max(0, outputImage.getWidth() - 2 * framePadding));
+        outputImage.getGraphics().drawImage(descriptionImage, framePadding, framePadding, null);
 
         return ImageUtils.scale(outputImage, requestedDimension.width, requestedDimension.height);
     }

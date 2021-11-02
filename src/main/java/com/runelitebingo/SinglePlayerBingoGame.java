@@ -1,13 +1,14 @@
 package com.runelitebingo;
 
-import com.runeliteminigame.display.IDisplayableMinigame;
 import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.display.IDisplayableMinigame;
 import com.runeliteminigame.display.RelativeMinigameComponentStruct;
 import com.runeliteminigame.tasks.CombatTask;
 import com.runeliteminigame.tasks.IRunescapeTask;
 import com.runeliteminigame.util.CommonImages;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.SpriteID;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.components.BackgroundComponent;
 
@@ -18,7 +19,6 @@ import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
@@ -54,20 +54,29 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     }
 
     // Restrict constructor access to this class; users need to call createGame or loadGameFrom.
-    private SinglePlayerBingoGame() {
+    private SinglePlayerBingoGame(IMinigamePlugin plugin) {
         this.backgroundComponent = new BackgroundComponent();
         this.backgroundComponent.setFill(false);
+        this.plugin = plugin;
+        this.spriteManager = plugin.getSpriteManager();
     }
 
     private boolean cancelled = false;
     private Point selectedTask = null;
+    private Point hoveredTask = null;
+    private Point previousRelativePoint = new Point(-1, -1);
     private final IRunescapeTask[][] tasks = new IRunescapeTask[5][5];
     private Rectangle boardRectangle = null;
     private Rectangle descriptionRectangle = null;
     private final BackgroundComponent backgroundComponent;
+    private final IMinigamePlugin plugin;
+    private final SpriteManager spriteManager;
+    private BufferedImage BANK_TAB_EMPTY;
+    private BufferedImage BANK_TAB_HOVERED;
+    private BufferedImage BANK_TAB_SELECTED;
 
     public static SinglePlayerBingoGame createGame(BingoConstraint constraint, IMinigamePlugin plugin) {
-        SinglePlayerBingoGame game = new SinglePlayerBingoGame();
+        SinglePlayerBingoGame game = new SinglePlayerBingoGame(plugin);
         IRunescapeTask[][] tasks;
         if (constraint == null) {
             tasks = BingoConstraint.randomTasks(plugin);
@@ -83,7 +92,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     public static SinglePlayerBingoGame loadGameFrom(Dictionary<String, Object> config, IMinigamePlugin plugin) {
         boolean cancelledGame = (boolean)config.get("cancelled");
         Dictionary<String, Object>[][] taskSpecs = (Dictionary<String, Object>[][]) config.get("tasks");
-        SinglePlayerBingoGame game = new SinglePlayerBingoGame();
+        SinglePlayerBingoGame game = new SinglePlayerBingoGame(plugin);
         game.cancelled = cancelledGame;
         for (int row = 0; row < taskSpecs.length; row++) {
             for (int col = 0; col < taskSpecs[row].length; col++) {
@@ -187,8 +196,10 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         }
         else {
             bingoImage = plugin.getSpriteManager().getSprite(SpriteID.MAP_ICON_MINIGAME, 0);
+            assert bingoImage != null;
         }
-        BufferedImage result = bingoImage;
+        BufferedImage result = new BufferedImage(bingoImage.getWidth(), bingoImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        result.getGraphics().drawImage(bingoImage, 0, 0, null);
         if (this.isCompleted()) {
             BufferedImage taskCompleteImage = CommonImages.getTaskCompleteImage();
             taskCompleteImage = ImageUtils.scale(taskCompleteImage, result.getWidth() * 2 / 3, result.getHeight() * 2 / 3);
@@ -206,19 +217,46 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
                 requestedDimension.height / this.tasks.length
         );
 
+        if (BANK_TAB_EMPTY == null) {
+            this.BANK_TAB_EMPTY = spriteManager.getSprite(SpriteID.BANK_TAB_EMPTY, 0);
+        }
+
         BufferedImage[][] images = new BufferedImage[tasks.length][tasks[0].length];
+        BufferedImage[][] backgrounds = new BufferedImage[tasks.length][tasks[0].length];
         for (int row = 0; row < images.length; row++) {
             for (int col = 0; col < images[row].length; col++) {
                 images[row][col] = tasks[row][col].getImage(plugin, tileDimension);
+                backgrounds[row][col] = ImageUtils.scale(BANK_TAB_EMPTY, tileDimension.width, tileDimension.height);
             }
+        }
+
+        if (BANK_TAB_HOVERED == null) {
+            this.BANK_TAB_HOVERED = spriteManager.getSprite(SpriteID.BANK_TAB_HOVERED, 0);
+        }
+        else if (hoveredTask != null) {
+            backgrounds[hoveredTask.y][hoveredTask.x] = ImageUtils.scale(BANK_TAB_HOVERED, tileDimension.width, tileDimension.height);
+        }
+        if (BANK_TAB_SELECTED == null) {
+            this.BANK_TAB_SELECTED = spriteManager.getSprite(SpriteID.BANK_TAB_SELECTED, 0);
+        }
+        else if (selectedTask != null) {
+            backgrounds[selectedTask.y][selectedTask.x] = ImageUtils.scale(BANK_TAB_SELECTED, tileDimension.width, tileDimension.height);
         }
 
         BufferedImage outputImage = new BufferedImage(requestedDimension.width, requestedDimension.height, BufferedImage.TYPE_INT_ARGB);
         // Run left to right, top to bottom.
         int currentPosZero = 0;
-        for (BufferedImage[] row : images) {
+        for (int row = 0; row < images.length; row++) {
             int currentPosOne = 0;
-            for (BufferedImage image : row) {
+            for (int col = 0; col < images[row].length; col++) {
+                BufferedImage image = images[row][col];
+                BufferedImage background = backgrounds[row][col];
+                outputImage.getGraphics().drawImage(
+                        ImageUtils.scale(background, tileDimension.width, tileDimension.height),
+                        currentPosOne,
+                        currentPosZero,
+                        null
+                );
                 outputImage.getGraphics().drawImage(
                         ImageUtils.scale(image, tileDimension.width, tileDimension.height),
                         currentPosOne,
@@ -235,12 +273,20 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     private String getDescriptionText() {
         if (this.selectedTask == null) {
-            return "Bingo minigame: Complete tasks in " +
+            String text = "Bingo minigame: Complete tasks in " +
                    "any order that you like. You win when " +
                    "you complete five tasks that form a row, a column, or a diagonal line. " +
                    "Note that four corners are not supported at this time.";
+            if (isCompleted()) {
+                text += "\n\nThis game has been completed!";
+            }
+            return text;
         }
-        return this.tasks[selectedTask.y][selectedTask.x].getDescriptionText();
+        String text = this.tasks[selectedTask.y][selectedTask.x].getDescriptionText();
+        if (this.tasks[selectedTask.y][selectedTask.x].isCompleted()) {
+            text += "\n\nThis task has been completed!";
+        }
+        return text;
     }
 
     private BufferedImage getDescriptionImage(Dimension requestedDimension) {
@@ -305,6 +351,23 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         return output;
     }
 
+    private Point boardContains(Point relativeOffset) {
+        if (boardRectangle == null || relativeOffset == null) {
+            return null;
+        }
+        if (
+                relativeOffset.x >= boardRectangle.x && relativeOffset.x < boardRectangle.width + boardRectangle.x &&
+                relativeOffset.y >= boardRectangle.y && relativeOffset.y < boardRectangle.height + boardRectangle.y
+        ) {
+            int x_offset = relativeOffset.x - boardRectangle.x;
+            int y_offset = relativeOffset.y - boardRectangle.y;
+            return new Point((tasks[0].length * x_offset) / boardRectangle.width, (tasks.length * y_offset) / boardRectangle.height);
+        }
+        else {
+            return null;
+        }
+    }
+
     @Override
     public void keyTyped(KeyEvent event) {
 
@@ -327,8 +390,18 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     @Override
     public MouseEvent mouseClicked(MouseEvent event, Point relativeOffset) {
-        // TODO: When clicking a task, get task details and change task bank tab to selected.
-        // If the task's details are already showing, de-highlight the tab and show the game's details instead.
+        Point boardLocation = boardContains(relativeOffset);
+        if (boardLocation != null) {
+            // If we click on a task tile, set it to the active tile.
+            // If the task's details are already showing, de-highlight the tab and show the game's details instead.
+            if (selectedTask != null && boardLocation.x == selectedTask.x && boardLocation.y == selectedTask.y) {
+                // De-select.
+                selectedTask = null;
+            } else {
+                selectedTask = boardLocation;
+            }
+            this.plugin.requestRedraw();
+        }
         return event;
     }
 
@@ -339,7 +412,14 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     @Override
     public MouseEvent mouseMoved(MouseEvent event, Point relativeOffset) {
-        // TODO: When hovering over a task, change task bank tab to highlighted and display a tooltip.
+        // When hovering over a task, change task bank tab to highlighted.
+        Point previousBoardPoint = boardContains(previousRelativePoint);
+        Point currentBoardPoint = boardContains(relativeOffset);
+        if (currentBoardPoint != null || previousBoardPoint != null) {
+            this.hoveredTask = currentBoardPoint;
+            this.plugin.requestRedraw();
+            this.previousRelativePoint = relativeOffset;
+        }
         return event;
     }
 

@@ -114,7 +114,7 @@ public class ImageUtils {
             return new BufferedImage(0, 0, BufferedImage.TYPE_INT_ARGB);
         }
         int sizePerRow = (int)Math.ceil(graphics.getFontMetrics().getStringBounds(textRows.get(0), graphics).getHeight());
-        BufferedImage outputImage = new BufferedImage(fixedWidth, sizePerRow * textRows.size(), BufferedImage.TYPE_INT_ARGB);
+        BufferedImage outputImage = new BufferedImage(fixedWidth, sizePerRow * (1 + textRows.size()), BufferedImage.TYPE_INT_ARGB);
         int offset = sizePerRow;
         outputImage.getGraphics().setFont(graphics.getFont());
         for(String line : textRows) {
@@ -166,6 +166,12 @@ public class ImageUtils {
             // We'll shrink the substring to prevent cutting off words halfway.
             int spaceLocation = substring.lastIndexOf(" ");
             adjustedIndex = spaceLocation + 1;
+            substring = longText.substring(0, adjustedIndex).trim();
+        }
+        if (substring.contains("\n")) {
+            // Hard cutoff; newlines should be rendered that way.
+            int newLineLocation = substring.indexOf("\n");
+            adjustedIndex = newLineLocation + 1;
             substring = longText.substring(0, adjustedIndex).trim();
         }
         String remaining = longText.substring(adjustedIndex);

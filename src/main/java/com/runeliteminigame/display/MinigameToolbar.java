@@ -68,7 +68,7 @@ public class MinigameToolbar implements IMinigameInputHandler {
                     TOOLBAR_HEIGHT
             );
         }
-        BufferedImage image = new BufferedImage(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        @SuppressWarnings("SuspiciousNameCombination") BufferedImage image = new BufferedImage(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         if (isSelected) {
             image.getGraphics().drawImage(
                     ImageUtils.scaleSquare(spriteManager.getSprite(SpriteID.BANK_TAB_SELECTED, 0), TOOLBAR_HEIGHT),

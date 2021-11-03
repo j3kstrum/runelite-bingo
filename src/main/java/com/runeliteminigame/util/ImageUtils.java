@@ -162,8 +162,9 @@ public class ImageUtils {
 
         String substring = longText.substring(0, current).trim();
         int adjustedIndex = current;
-        if (substring.contains(" ")) {
+        if (substring.contains(" ") && current != longText.length()) {
             // We'll shrink the substring to prevent cutting off words halfway.
+            // Don't do this if we render the full string, though, since this produces one word on the next line.
             int spaceLocation = substring.lastIndexOf(" ");
             adjustedIndex = spaceLocation + 1;
             substring = longText.substring(0, adjustedIndex).trim();

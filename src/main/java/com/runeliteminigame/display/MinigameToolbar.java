@@ -157,19 +157,21 @@ public class MinigameToolbar implements IMinigameInputHandler {
     public void keyTyped(KeyEvent event) {
         if (event.getKeyCode() == KeyEvent.VK_LEFT) {
             this.leftButton.keyTyped(event);
+            event.consume();
         } else if (event.getKeyCode() == KeyEvent.VK_RIGHT) {
             this.rightButton.keyTyped(event);
+            event.consume();
         }
     }
 
     @Override
     public void keyPressed(KeyEvent event) {
-
+        this.addButton.keyPressed(event);
     }
 
     @Override
     public void keyReleased(KeyEvent event) {
-
+        this.addButton.keyReleased(event);
     }
 
     @Override

@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 public class MinigameAddButton implements IDisplayableWithIcon, IMinigameInputHandler {
 
     private final MinigameDisplayContainer minigameDisplayContainer;
+    private boolean shouldAdd = true;
 
     MinigameAddButton(MinigameDisplayContainer minigameDisplayContainer) {
         this.minigameDisplayContainer = minigameDisplayContainer;
@@ -20,7 +21,12 @@ public class MinigameAddButton implements IDisplayableWithIcon, IMinigameInputHa
 
     @Override
     public BufferedImage getIcon(IMinigamePlugin plugin) {
-        return plugin.getSpriteManager().getSprite(SpriteID.BANK_ADD_TAB_ICON, 0);
+        if (this.shouldAdd) {
+            return plugin.getSpriteManager().getSprite(SpriteID.BANK_ADD_TAB_ICON, 0);
+        }
+        else {
+            return plugin.getSpriteManager().getSprite(SpriteID.WINDOW_CLOSE_BUTTON_BROWN_X, 0);
+        }
     }
 
     @Override
@@ -30,12 +36,18 @@ public class MinigameAddButton implements IDisplayableWithIcon, IMinigameInputHa
 
     @Override
     public void keyPressed(KeyEvent event) {
-
+        if (event.getKeyCode() == KeyEvent.VK_SHIFT && this.shouldAdd) {
+            shouldAdd = false;
+            this.minigameDisplayContainer.requestRedraw();
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent event) {
-
+        if (event.getKeyCode() == KeyEvent.VK_SHIFT && !this.shouldAdd) {
+            shouldAdd = true;
+            this.minigameDisplayContainer.requestRedraw();
+        }
     }
 
     @Override
@@ -46,7 +58,12 @@ public class MinigameAddButton implements IDisplayableWithIcon, IMinigameInputHa
     @Override
     public MouseEvent mouseClicked(MouseEvent event, Point relativeOffset) {
         if (SwingUtilities.isLeftMouseButton(event)) {
-            this.minigameDisplayContainer.addMinigame();
+            if (this.shouldAdd) {
+                this.minigameDisplayContainer.addMinigame();
+            }
+            else {
+                this.minigameDisplayContainer.promptDelete();
+            }
             event.consume();
         }
         return event;

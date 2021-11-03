@@ -33,6 +33,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     private static final int MINIMUM_BOARD_WIDTH = NUM_TILES * RECOMMENDED_IMAGE_MINIMUM_SIZE;
     private static final int MINIMUM_DESCRIPTION_WIDTH = 200;
     private static final int MINIMUM_IMAGE_WIDTH = MINIMUM_BOARD_WIDTH + MINIMUM_DESCRIPTION_WIDTH;
+    private static final int MAX_WARNING_WIDTH = 300;
 
     static {
         // Sets the bingo image.
@@ -60,6 +61,9 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         this.plugin = plugin;
         this.spriteManager = plugin.getSpriteManager();
     }
+
+    private boolean promptingDelete = false;
+    private boolean isDeleting = false;
 
     private boolean cancelled = false;
     private Point selectedTask = null;
@@ -189,6 +193,19 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     }
 
     @Override
+    public void promptDelete() {
+        if (!this.isDeleting) {
+            this.promptingDelete = true;
+            this.plugin.requestRedraw();
+        }
+    }
+
+    @Override
+    public boolean shouldDelete() {
+        return this.isDeleting;
+    }
+
+    @Override
     public BufferedImage getIcon(IMinigamePlugin plugin) {
         BufferedImage bingoImage;
         if (BINGO_IMAGE != null) {
@@ -296,8 +313,8 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         BufferedImage outputImage = new BufferedImage(requestedDimension.width, requestedDimension.height, BufferedImage.TYPE_INT_ARGB);
         outputImage.getGraphics().setFont(FontManager.getRunescapeFont());
 
-        this.backgroundComponent.render(outputImage.createGraphics());
         this.backgroundComponent.setRectangle(new Rectangle(0, 0, requestedDimension.width, requestedDimension.height));
+        this.backgroundComponent.render(outputImage.createGraphics());
         String descriptionText = this.getDescriptionText();
         // TODO: Cache this when the text doesn't change.
         BufferedImage descriptionImage = ImageUtils.getTextImageScrollVertical(descriptionText, outputImage.getGraphics(), Math.max(0, outputImage.getWidth() - 2 * framePadding));
@@ -348,7 +365,50 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
             output.getGraphics().drawImage(descriptionImage, descriptionRectangle.x, descriptionRectangle.y, null);
         }
 
+        if (this.promptingDelete) {
+            output.getGraphics().drawImage(
+                    this.confirmDeleteImage(output.getWidth(), output.getHeight()),
+                    0,
+                    0,
+                    null
+            );
+        }
+
         return output;
+    }
+
+    private BufferedImage confirmDeleteImage(int width, int height) {
+
+        int PADDING = 5;
+
+        BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        outputImage.getGraphics().setFont(FontManager.getRunescapeFont());
+
+        this.backgroundComponent.setFill(true);
+        this.backgroundComponent.setRectangle(new Rectangle(0, 0, width, height));
+        this.backgroundComponent.render(outputImage.createGraphics());
+
+        String warningText = "Are you sure you'd like to delete this game?\n" +
+                "Press Delete to confirm or click here to cancel.";
+
+        int warningWidth = Math.min(width, MAX_WARNING_WIDTH - 2 * PADDING);
+        BufferedImage warningImage = ImageUtils.getTextImageScrollVertical(warningText, outputImage.getGraphics(), warningWidth);
+
+        BufferedImage warningOutput = new BufferedImage(warningWidth, warningImage.getHeight() + 2 * PADDING, BufferedImage.TYPE_INT_RGB);
+
+        int heightOffset = (height - warningOutput.getHeight()) / 2;
+        heightOffset = Math.max(0, heightOffset);
+
+        int widthOffset = (width - warningOutput.getWidth()) / 2;
+
+        this.backgroundComponent.setFill(true);
+        this.backgroundComponent.setRectangle(new Rectangle(0, 0, warningOutput.getWidth(), warningOutput.getHeight()));
+        this.backgroundComponent.render(warningOutput.createGraphics());
+        warningOutput.getGraphics().drawImage(warningImage, PADDING, PADDING, null);
+
+        outputImage.getGraphics().drawImage(warningOutput, widthOffset, heightOffset, null);
+
+        return ImageUtils.scale(outputImage, width, height);
     }
 
     private Point boardContains(Point relativeOffset) {
@@ -380,7 +440,11 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     @Override
     public void keyReleased(KeyEvent event) {
-
+        if (this.promptingDelete && event.getKeyCode() == KeyEvent.VK_DELETE) {
+            this.isDeleting = true;
+            this.promptingDelete = false;
+            this.plugin.requestRedraw();
+        }
     }
 
     @Override
@@ -390,6 +454,12 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
 
     @Override
     public MouseEvent mouseClicked(MouseEvent event, Point relativeOffset) {
+        if (this.promptingDelete) {
+            this.promptingDelete = false;
+            this.plugin.requestRedraw();
+            event.consume();
+            return event;
+        }
         Point boardLocation = boardContains(relativeOffset);
         if (boardLocation != null) {
             // If we click on a task tile, set it to the active tile.
@@ -401,6 +471,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
                 selectedTask = boardLocation;
             }
             this.plugin.requestRedraw();
+            event.consume();
         }
         return event;
     }

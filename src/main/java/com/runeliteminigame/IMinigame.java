@@ -8,5 +8,7 @@ public interface IMinigame {
     boolean isCompleted();
     boolean isCancelled();
     boolean isMultiPlayer();
+    void promptDelete();
+    boolean shouldDelete();
 
 }

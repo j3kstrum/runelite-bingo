@@ -1,6 +1,7 @@
 package com.runeliteminigame.display;
 
 import com.runelitebingo.SinglePlayerBingoGame;
+import com.runeliteminigame.IMinigame;
 import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.events.WidgetMenuOptionClicked;
@@ -164,6 +165,13 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         this.loadedMinigames.add(SinglePlayerBingoGame.createGame(null, this.plugin));
     }
 
+    void promptDelete() {
+        if (this.loadedMinigames.size() == 0) {
+            return;
+        }
+        this.loadedMinigames.get(this.currentMinigameIndex).promptDelete();
+    }
+
     boolean trySetActive(IDisplayableMinigame game) {
         if (!this.loadedMinigames.contains(game)) {
             System.out.println("Error: could not find minigame in loaded games list.");
@@ -223,6 +231,9 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         }
 
         if (redraw || cachedImage == null) {
+            // Just in case - clean up minigames on redraw.
+            this.removeDeletedMinigames();
+
             BufferedImage image = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
             BufferedImage minigameImage;
             if (this.loadedMinigames.size() > 0) {
@@ -288,29 +299,52 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         this.requestRedraw();
     }
 
+    private void removeDeletedMinigames() {
+        this.loadedMinigames.removeIf(IMinigame::shouldDelete);
+        // Rewind first and current minigame indices to ensure they're in bounds (or at the defaults if empty).
+        this.firstTabIndex = Math.max(0, Math.min(this.firstTabIndex, loadedMinigames.size() - 1));
+        this.currentMinigameIndex = Math.max(0, Math.min(this.currentMinigameIndex, loadedMinigames.size() - 1));
+    }
+
     @Override
     public void keyTyped(KeyEvent event) {
         if (this.isOverlayShown()) {
-            if (event.getKeyCode() == KeyEvent.VK_LEFT || event.getKeyCode() == KeyEvent.VK_RIGHT) {
-                this.minigameToolbar.keyTyped(event);
-            }
-            else if (this.loadedMinigames.size() > 0) {
-                // Default: pass to the minigame.
-                this.loadedMinigames.get(this.currentMinigameIndex).keyTyped(event);
+            this.minigameToolbar.keyTyped(event);
+            if (this.loadedMinigames.size() > 0) {
+                this.loadedMinigames.get(currentMinigameIndex).keyTyped(event);
             }
         }
     }
 
     @Override
     public void keyPressed(KeyEvent event) {
-        if (this.isOverlayShown() && event.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            this.closeOverlay();
-            event.consume();
+        if (this.isOverlayShown()) {
+            if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                this.closeOverlay();
+                event.consume();
+            }
+            else {
+                this.minigameToolbar.keyPressed(event);
+                if (this.loadedMinigames.size() > 0) {
+                    this.loadedMinigames.get(currentMinigameIndex).keyPressed(event);
+                }
+            }
         }
     }
 
     @Override
-    public void keyReleased(KeyEvent event) {}
+    public void keyReleased(KeyEvent event) {
+        if (this.isOverlayShown()) {
+            this.minigameToolbar.keyReleased(event);
+            if (this.loadedMinigames.size() > 0) {
+                this.loadedMinigames.get(currentMinigameIndex).keyReleased(event);
+            }
+
+            if (this.loadedMinigames.size() > 0 && event.getKeyCode() == KeyEvent.VK_DELETE) {
+                this.removeDeletedMinigames();
+            }
+        }
+    }
 
     @Override
     public MouseWheelEvent mouseWheelMoved(MouseWheelEvent event, Point relativeOffset) {

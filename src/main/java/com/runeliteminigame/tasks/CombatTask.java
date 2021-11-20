@@ -1,6 +1,6 @@
 package com.runeliteminigame.tasks;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
 import com.runeliteminigame.pluginlisteners.ICombatListener;
 import com.runeliteminigame.util.CommonImages;
 import com.runeliteminigame.util.ImageUtils;
@@ -34,13 +34,13 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
     private final BackgroundComponent backgroundComponent;
 
     private final float minFractionDamage;
-    private IMinigamePlugin pluginSubscribedTo;
+    private IMiniGamePlugin pluginSubscribedTo;
 
-    public CombatTask(String targetName, int quantity, IMinigamePlugin plugin) {
+    public CombatTask(String targetName, int quantity, IMiniGamePlugin plugin) {
         this(targetName, quantity, plugin, DEFAULT_MIN_FRACTION_DAMAGE);
     }
 
-    public CombatTask(String targetName, int quantity, IMinigamePlugin plugin, float minFractionDamage) {
+    public CombatTask(String targetName, int quantity, IMiniGamePlugin plugin, float minFractionDamage) {
         this.amount = quantity;
         this.progress = 0;
         this.target = CombatTaskElement.TASK_FROM_ID.get(targetName);
@@ -69,7 +69,7 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
     }
 
     @Override
-    public BufferedImage getImage(IMinigamePlugin plugin, Dimension requestedDimension) {
+    public BufferedImage getImage(IMiniGamePlugin plugin, Dimension requestedDimension) {
         if (requestedDimension == null) {
             requestedDimension = new Dimension(64, 64);
         }
@@ -164,7 +164,7 @@ public class CombatTask implements IRunescapeTask, ICombatListener {
         return ret;
     }
 
-    public static CombatTask loadFrom(Dictionary<String, Object> serialized, IMinigamePlugin plugin) {
+    public static CombatTask loadFrom(Dictionary<String, Object> serialized, IMiniGamePlugin plugin) {
         assert serialized.get(TASK_TYPE).equals(COMBAT_MINI_GAME_TASK);
         CombatTask task = new CombatTask((String)serialized.get("targetName"), (int)serialized.get("amount"), plugin);
         task.progress = (int)serialized.get("progress");

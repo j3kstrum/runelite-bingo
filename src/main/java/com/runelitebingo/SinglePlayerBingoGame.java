@@ -1,6 +1,6 @@
 package com.runelitebingo;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
 import com.runeliteminigame.display.IDisplayableMinigame;
 import com.runeliteminigame.display.RelativeMinigameComponentStruct;
 import com.runeliteminigame.tasks.CombatTask;
@@ -55,7 +55,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     }
 
     // Restrict constructor access to this class; users need to call createGame or loadGameFrom.
-    private SinglePlayerBingoGame(IMinigamePlugin plugin) {
+    private SinglePlayerBingoGame(IMiniGamePlugin plugin) {
         this.backgroundComponent = new BackgroundComponent();
         this.backgroundComponent.setFill(false);
         this.plugin = plugin;
@@ -73,13 +73,13 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     private Rectangle boardRectangle = null;
     private Rectangle descriptionRectangle = null;
     private final BackgroundComponent backgroundComponent;
-    private final IMinigamePlugin plugin;
+    private final IMiniGamePlugin plugin;
     private final SpriteManager spriteManager;
     private BufferedImage BANK_TAB_EMPTY;
     private BufferedImage BANK_TAB_HOVERED;
     private BufferedImage BANK_TAB_SELECTED;
 
-    public static SinglePlayerBingoGame createGame(BingoConstraint constraint, IMinigamePlugin plugin) {
+    public static SinglePlayerBingoGame createGame(BingoConstraint constraint, IMiniGamePlugin plugin) {
         SinglePlayerBingoGame game = new SinglePlayerBingoGame(plugin);
         IRunescapeTask[][] tasks;
         if (constraint == null) {
@@ -93,7 +93,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         return game;
     }
 
-    public static SinglePlayerBingoGame loadGameFrom(Dictionary<String, Object> config, IMinigamePlugin plugin) {
+    public static SinglePlayerBingoGame loadGameFrom(Dictionary<String, Object> config, IMiniGamePlugin plugin) {
         boolean cancelledGame = (boolean)config.get("cancelled");
         Dictionary<String, Object>[][] taskSpecs = (Dictionary<String, Object>[][]) config.get("tasks");
         SinglePlayerBingoGame game = new SinglePlayerBingoGame(plugin);
@@ -206,7 +206,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     }
 
     @Override
-    public BufferedImage getIcon(IMinigamePlugin plugin) {
+    public BufferedImage getIcon(IMiniGamePlugin plugin) {
         BufferedImage bingoImage;
         if (BINGO_IMAGE != null) {
             bingoImage = BINGO_IMAGE;
@@ -225,7 +225,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
         return result;
     }
 
-    private BufferedImage getBoardImage(IMinigamePlugin plugin, Dimension requestedDimension) {
+    private BufferedImage getBoardImage(IMiniGamePlugin plugin, Dimension requestedDimension) {
         if (requestedDimension == null) {
             requestedDimension = new Dimension(RECOMMENDED_IMAGE_MINIMUM_SIZE * NUM_TILES, RECOMMENDED_IMAGE_MINIMUM_SIZE * NUM_TILES);
         }
@@ -324,7 +324,7 @@ public class SinglePlayerBingoGame implements IDisplayableMinigame {
     }
 
     @Override
-    public BufferedImage getMainImage(IMinigamePlugin plugin, Dimension requestedDimension) {
+    public BufferedImage getMainImage(IMiniGamePlugin plugin, Dimension requestedDimension) {
         // We will always draw the image on the right side of the plugin (for now), scaling the board image
         // to the remaining size.
         Dimension descriptionDimension;

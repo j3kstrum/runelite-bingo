@@ -7,7 +7,7 @@ import net.runelite.client.input.KeyManager;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.menus.MenuManager;
 
-public interface IMinigamePlugin {
+public interface IMiniGamePlugin {
 
     ItemManager getItemManager();
     SpriteManager getSpriteManager();
@@ -21,5 +21,4 @@ public interface IMinigamePlugin {
 
     void requestRedraw();
 
-    String name();
 }

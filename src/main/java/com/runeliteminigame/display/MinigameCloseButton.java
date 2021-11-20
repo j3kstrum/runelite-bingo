@@ -1,6 +1,7 @@
 package com.runeliteminigame.display;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
+import com.runeliteminigame.IMinigameInputHandler;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.client.game.SpriteManager;
 
@@ -85,7 +86,7 @@ class MinigameCloseButton implements IDisplayableWithIcon, IMinigameInputHandler
     }
 
     @Override
-    public BufferedImage getIcon(IMinigamePlugin plugin) {
+    public BufferedImage getIcon(IMiniGamePlugin plugin) {
         if (isCloseButtonHovered) {
             return ImageUtils.scaleSquare(
                     this.spriteManager.getSprite(WINDOW_CLOSE_BUTTON_RED_X_HOVERED, 0),

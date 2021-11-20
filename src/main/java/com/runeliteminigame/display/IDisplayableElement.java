@@ -1,6 +1,6 @@
 package com.runeliteminigame.display;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
 
 import java.awt.Dimension;
 import java.awt.image.BufferedImage;
@@ -19,5 +19,5 @@ public interface IDisplayableElement extends IDisplayableWithIcon {
      *                           by the caller.
      * @return The BufferedImage representing the main image representing the element's current state.
      */
-    BufferedImage getMainImage(IMinigamePlugin plugin, Dimension requestedDimension);
+    BufferedImage getMainImage(IMiniGamePlugin plugin, Dimension requestedDimension);
 }

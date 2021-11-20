@@ -1,11 +1,13 @@
-package com.runeliteminigame.display;
+package com.runeliteminigame;
+
+import com.runeliteminigame.display.RelativeMinigameComponentStruct;
 
 import java.awt.Point;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 
-interface IMinigameInputHandler {
+public interface IMinigameInputHandler {
 
     void keyTyped(KeyEvent event);
 

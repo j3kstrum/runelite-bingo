@@ -1,6 +1,6 @@
 package com.runelitebingo;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
 import com.runeliteminigame.tasks.CombatTask;
 import com.runeliteminigame.tasks.CombatTaskElement;
 import com.runeliteminigame.tasks.IRunescapeTask;
@@ -12,11 +12,11 @@ public class BingoConstraint {
     // TODO: Create the bingo constraint class. Constrains bingo to adhere to only combat tasks,
     // tasks with a certain duration, only skilling tasks, etc...
 
-    IRunescapeTask[][] createTasks(IMinigamePlugin plugin) {
+    IRunescapeTask[][] createTasks(IMiniGamePlugin plugin) {
         throw new NotImplementedException("Constraints are not yet supported.");
     }
 
-    static IRunescapeTask[][] randomTasks(IMinigamePlugin plugin) {
+    static IRunescapeTask[][] randomTasks(IMiniGamePlugin plugin) {
         IRunescapeTask[][] tasks = new IRunescapeTask[5][5];
         for (int i = 0; i < tasks.length; i++) {
             for (int j = 0; j < tasks[i].length; j++) {

@@ -1,6 +1,7 @@
 package com.runeliteminigame.display;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
+import com.runeliteminigame.IMinigameInputHandler;
 import net.runelite.api.SpriteID;
 
 import javax.swing.SwingUtilities;
@@ -22,7 +23,7 @@ public class MinigameSettingsButton implements IDisplayableWithIcon, IMinigameIn
     }
 
     @Override
-    public BufferedImage getIcon(IMinigamePlugin plugin) {
+    public BufferedImage getIcon(IMiniGamePlugin plugin) {
         BufferedImage sprite = plugin.getSpriteManager().getSprite(SpriteID.TAB_OPTIONS, 0);
         // Temporarily gray out the icon, since settings aren't yet supported (Issue #24).
         assert sprite != null;

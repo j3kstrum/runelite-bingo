@@ -2,7 +2,7 @@ package com.runeliteminigame.display;
 
 import com.runelitebingo.SinglePlayerBingoGame;
 import com.runeliteminigame.IMinigame;
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMinigameInputHandler;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.events.WidgetMenuOptionClicked;
 import net.runelite.api.widgets.WidgetInfo;
@@ -46,7 +46,6 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     private static final int IMG_HEIGHT = MinigameToolbar.getToolbarHeight() + WIDGET_HEIGHT;
 
     private boolean redraw;
-    private final IMinigamePlugin plugin;
     private final MinigameInputListener inputListener;
     private MenuManager menuManager;
 
@@ -73,9 +72,8 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
 
     private Point previousRelativePoint = new Point(0, 0);
 
-    public MinigameDisplayContainer(IMinigamePlugin plugin) {
+    public MinigameDisplayContainer() {
         this.inputListener = new MinigameInputListener(this);
-        this.plugin = plugin;
         setPriority(OverlayPriority.HIGH);
         setPosition(OverlayPosition.TOP_CENTER);
         setLayer(OverlayLayer.ABOVE_WIDGETS);
@@ -162,7 +160,7 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         // TODO: To future-proof, would probably need to have a "BaseMinigame".
         // Its sole purpose would be to select a new minigame type from all candidates.
         // It would allow for the user to specify constraints for the new game.
-        this.loadedMinigames.add(SinglePlayerBingoGame.createGame(null, this.plugin));
+        this.loadedMinigames.add(SinglePlayerBingoGame.createGame(null));
     }
 
     void promptDelete() {
@@ -238,7 +236,6 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
             BufferedImage minigameImage;
             if (this.loadedMinigames.size() > 0) {
                 minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(
-                        this.plugin,
                         new Dimension(WIDGET_WIDTH, WIDGET_HEIGHT)
                 );
             } else {

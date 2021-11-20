@@ -1,6 +1,6 @@
 package com.runeliteminigame.display;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMinigameInputHandler;
 import com.runeliteminigame.util.ImageUtils;
 import net.runelite.api.SpriteID;
 import net.runelite.client.game.SpriteManager;
@@ -21,7 +21,6 @@ public class MinigameToolbar implements IMinigameInputHandler {
 
     private final SpriteManager spriteManager;
 
-    private final IMinigamePlugin plugin;
     private final MinigameDisplayContainer displayContainer;
 
     private final MinigameLeftButton leftButton;
@@ -33,13 +32,12 @@ public class MinigameToolbar implements IMinigameInputHandler {
     private Point previousRelativePoint = new Point(-1, -1);
     private int hoveredTile;
 
-    public MinigameToolbar(IMinigamePlugin plugin, MinigameDisplayContainer displayContainer) {
+    public MinigameToolbar(SpriteManager spriteManager, MinigameDisplayContainer displayContainer) {
         this.displayContainer = displayContainer;
-        this.spriteManager = plugin.getSpriteManager();
-        this.plugin = plugin;
+        this.spriteManager = spriteManager;
         this.leftButton = new MinigameLeftButton(displayContainer);
         this.rightButton = new MinigameRightButton(displayContainer);
-        this.closeButton = new MinigameCloseButton(displayContainer, plugin.getSpriteManager());
+        this.closeButton = new MinigameCloseButton(displayContainer, spriteManager);
         this.settingsButton = new MinigameSettingsButton(displayContainer);
         this.addButton = new MinigameAddButton(displayContainer);
 

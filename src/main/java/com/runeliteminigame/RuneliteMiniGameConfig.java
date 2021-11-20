@@ -1,11 +1,11 @@
-package com.runelitebingo;
+package com.runeliteminigame;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("RuneliteBingo")
-public interface RuneliteBingoConfig extends Config
+@ConfigGroup("RuneliteCustomMinigames")
+public interface RuneliteMiniGameConfig extends Config
 {
 	@ConfigItem(
 		keyName = "greeting",

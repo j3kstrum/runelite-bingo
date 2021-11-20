@@ -1,6 +1,6 @@
 package com.runeliteminigame.tasks;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
 
 import java.awt.Dimension;
 import java.awt.image.BufferedImage;
@@ -11,7 +11,7 @@ public interface IRunescapeTask {
     String TASK_TYPE = "taskType";
 
     boolean isCompleted();
-    BufferedImage getImage(IMinigamePlugin plugin, Dimension requestedDimension);
+    BufferedImage getImage(IMiniGamePlugin plugin, Dimension requestedDimension);
     String getDescriptionText();
     Dictionary<String, Object> serializedTask();
 

@@ -1,6 +1,6 @@
 package com.runeliteminigame.display;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
 import com.runeliteminigame.util.ImageUtils;
 
 import java.awt.event.KeyEvent;
@@ -33,7 +33,7 @@ public class MinigameRightButton extends BaseMinigameDirectionalButton {
     }
 
     @Override
-    public BufferedImage getIcon(IMinigamePlugin plugin) {
+    public BufferedImage getIcon(IMiniGamePlugin plugin) {
         return RIGHT_ARROW_IMAGE;
     }
 }

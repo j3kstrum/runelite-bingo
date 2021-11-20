@@ -1,8 +1,7 @@
-package com.runelitebingo;
+package com.runeliteminigame;
 
 import com.google.inject.Binder;
 import com.google.inject.Provides;
-import com.runeliteminigame.IMinigamePlugin;
 import com.runeliteminigame.display.MinigameDisplayContainer;
 import com.runeliteminigame.pluginlisteners.ICombatListener;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +10,6 @@ import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Hitsplat;
 import net.runelite.api.NPC;
-import net.runelite.api.Player;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.HitsplatApplied;
@@ -34,42 +32,35 @@ import java.util.Hashtable;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Bingo Plugin",
-	description = "Adds an overlay (based on the InstanceMapPlugin) to play Bingo."
+	name = "MiniGame Plugin",
+	description = "Manages a collection of mini-games related to runescape-oriented tasks."
 )
-public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
+public class RuneliteMiniGamePlugin extends Plugin implements IMiniGamePlugin
 {
 	@Inject
 	private Client client;
-
 	@Inject
 	private SpriteManager spriteManager;
-
 	@Inject
 	private ItemManager itemManager;
-
 	@Inject
-	private RuneliteBingoConfig config;
-
-	@Provides
-	RuneliteBingoConfig provideConfig(ConfigManager configManager)
-	{
-		return configManager.getConfig(RuneliteBingoConfig.class);
-	}
-
+	private RuneliteMiniGameConfig config;
 	@Inject
 	private OverlayManager overlayManager;
-
-	private MinigameDisplayContainer bingoOverlay;
-
 	@Inject
 	private MenuManager menuManager;
-
 	@Inject
 	private KeyManager keyManager;
-
 	@Inject
 	private MouseManager mouseManager;
+
+	@Provides
+	RuneliteMiniGameConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(RuneliteMiniGameConfig.class);
+	}
+
+	private MinigameDisplayContainer bingoOverlay;
 
 	// We'll have to iterate over them all with each death, and remove will be infrequent.
 	// Arraylist is therefore fine.
@@ -79,11 +70,6 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 
 	public void requestRedraw() {
 		this.bingoOverlay.requestRedraw();
-	}
-
-	@Override
-	public String name() {
-		return "Bingo Plugin";
 	}
 
 	@Override
@@ -128,14 +114,14 @@ public class RuneliteBingoPlugin extends Plugin implements IMinigamePlugin
 	}
 
 	@Override
-	protected void startUp() throws Exception
+	protected void startUp()
 	{
-		bingoOverlay = new MinigameDisplayContainer(this);
+		bingoOverlay = new MinigameDisplayContainer();
 		overlayManager.add(bingoOverlay);
 	}
 
 	@Override
-	protected void shutDown() throws Exception
+	protected void shutDown()
 	{
 		bingoOverlay.shutDown();
 		overlayManager.remove(bingoOverlay);

@@ -1,6 +1,7 @@
 package com.runeliteminigame.display;
 
-import com.runeliteminigame.IMinigamePlugin;
+import com.runeliteminigame.IMiniGamePlugin;
+import com.runeliteminigame.IMinigameInputHandler;
 import net.runelite.api.SpriteID;
 
 import javax.swing.SwingUtilities;
@@ -20,7 +21,7 @@ public class MinigameAddButton implements IDisplayableWithIcon, IMinigameInputHa
     }
 
     @Override
-    public BufferedImage getIcon(IMinigamePlugin plugin) {
+    public BufferedImage getIcon(IMiniGamePlugin plugin) {
         if (this.shouldAdd) {
             return plugin.getSpriteManager().getSprite(SpriteID.BANK_ADD_TAB_ICON, 0);
         }

@@ -1,5 +1,7 @@
 package com.runeliteminigame.display;
 
+import com.runeliteminigame.IMinigameInputHandler;
+
 import java.awt.Point;
 
 public class RelativeMinigameComponentStruct {

@@ -2,8 +2,8 @@ package com.runeliteminigame.tasks;
 
 import com.runeliteminigame.IMiniGamePlugin;
 import com.runeliteminigame.pluginlisteners.ICombatListener;
-import com.runeliteminigame.util.CommonImages;
-import com.runeliteminigame.util.ImageUtils;
+import com.runeliteminigames.util.CommonImages;
+import com.runeliteminigames.util.ImageUtils;
 import net.runelite.api.NPC;
 import net.runelite.api.SpriteID;
 import net.runelite.client.ui.FontManager;
@@ -20,8 +20,6 @@ import java.util.Hashtable;
 import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 
 public class CombatTask implements IRunescapeTask, ICombatListener {
-
-    public static final String COMBAT_MINI_GAME_TASK = "combat";
 
     private static final float DEFAULT_MIN_FRACTION_DAMAGE = 0.5f;
 

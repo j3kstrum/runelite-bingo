@@ -2,7 +2,7 @@ package com.runeliteminigame.display;
 
 import com.runeliteminigame.IMiniGamePlugin;
 import com.runeliteminigame.IMinigameInputHandler;
-import com.runeliteminigame.util.ImageUtils;
+import com.runeliteminigames.util.ImageUtils;
 import net.runelite.client.game.SpriteManager;
 
 import javax.swing.SwingUtilities;

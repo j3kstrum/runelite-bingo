@@ -1,7 +1,7 @@
 package com.runeliteminigame.display;
 
 import com.runeliteminigame.IMiniGamePlugin;
-import com.runeliteminigame.util.ImageUtils;
+import com.runeliteminigames.util.ImageUtils;
 
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;

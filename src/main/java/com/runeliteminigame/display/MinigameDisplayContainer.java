@@ -3,18 +3,10 @@ package com.runeliteminigame.display;
 import com.runelitebingo.SinglePlayerBingoGame;
 import com.runeliteminigame.IMinigame;
 import com.runeliteminigame.IMinigameInputHandler;
-import com.runeliteminigame.util.ImageUtils;
-import net.runelite.api.events.WidgetMenuOptionClicked;
-import net.runelite.api.widgets.WidgetInfo;
+import com.runeliteminigames.util.ImageUtils;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.input.MouseManager;
-import net.runelite.client.menus.MenuManager;
-import net.runelite.client.menus.WidgetMenuOption;
 import net.runelite.client.ui.overlay.Overlay;
-import net.runelite.client.ui.overlay.OverlayLayer;
-import net.runelite.client.ui.overlay.OverlayPosition;
-import net.runelite.client.ui.overlay.OverlayPriority;
-import net.runelite.client.ui.overlay.components.BackgroundComponent;
 
 import javax.inject.Singleton;
 import javax.swing.SwingUtilities;
@@ -40,14 +32,7 @@ import java.util.ArrayList;
 @Singleton
 public class MinigameDisplayContainer extends Overlay implements IMinigameInputHandler {
 
-    private static final int WIDGET_HEIGHT = 360;
-    private static final int WIDGET_WIDTH = MinigameToolbar.getToolbarHeight() * MinigameToolbar.getTotalTiles();
-    private static final int IMG_WIDTH = WIDGET_WIDTH;
-    private static final int IMG_HEIGHT = MinigameToolbar.getToolbarHeight() + WIDGET_HEIGHT;
-
     private boolean redraw;
-    private final MinigameInputListener inputListener;
-    private MenuManager menuManager;
 
     private final ArrayList<IDisplayableMinigame> loadedMinigames = new ArrayList<>();
     // current minigame index - index of the minigame being displayed right now.
@@ -59,93 +44,17 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
     private final MinigameToolbar minigameToolbar;
 
     private volatile boolean showOverlay = false;
-    private final BackgroundComponent backgroundComponent = new BackgroundComponent();
-
-    private final WidgetMenuOption[] menuOptions = new WidgetMenuOption[] {
-            new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.FIXED_VIEWPORT_QUESTS_TAB),
-            new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.RESIZABLE_VIEWPORT_QUESTS_TAB),
-            // TODO: Can't currently find widget info for RESIZABLE_VIEWPORT_BOTTOM_LINE_QUEST_TAB. Maybe in the future?
-            new WidgetMenuOption("Show", "Bingo Board", WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE_INVENTORY_TAB)
-    };
 
     private BufferedImage cachedImage = null;
 
     private Point previousRelativePoint = new Point(0, 0);
 
     public MinigameDisplayContainer() {
-        this.inputListener = new MinigameInputListener(this);
-        setPriority(OverlayPriority.HIGH);
-        setPosition(OverlayPosition.TOP_CENTER);
-        setLayer(OverlayLayer.ABOVE_WIDGETS);
-        backgroundComponent.setFill(true);
-        this.registerInputListener(plugin.getKeyManager(), plugin.getMouseManager());
-        this.addCustomOptions(plugin.getMenuManager());
         this.minigameToolbar = new MinigameToolbar(plugin, this);
-    }
-
-    private void registerInputListener(KeyManager keyManager, MouseManager mouseManager) {
-        this.unregisterInputListeners();
-        keyManager.registerKeyListener(inputListener);
-        mouseManager.registerMouseListener(inputListener);
-        mouseManager.registerMouseWheelListener(inputListener);
-        this.keyManager = keyManager;
-        this.mouseManager = mouseManager;
-    }
-
-    private void unregisterInputListeners() {
-        if (this.keyManager != null) {
-            this.keyManager.unregisterKeyListener(inputListener);
-            this.keyManager = null;
-        }
-        if (this.mouseManager != null) {
-            this.mouseManager.unregisterMouseListener(inputListener);
-            this.mouseManager.unregisterMouseWheelListener(inputListener);
-            this.mouseManager = null;
-        }
-    }
-
-    private void addCustomOptions(MenuManager menuManager)
-    {
-        for (WidgetMenuOption menuOption : menuOptions) {
-            menuManager.addManagedCustomMenu(menuOption);
-        }
-        this.menuManager = menuManager;
-    }
-
-    private void removeCustomOptions()
-    {
-        if (this.menuManager != null) {
-            for (WidgetMenuOption menuOption : menuOptions) {
-                this.menuManager.removeManagedCustomMenu(menuOption);
-            }
-        }
-        this.menuManager = null;
-    }
-
-    private boolean clickedOptionEquals(WidgetMenuOptionClicked event, WidgetMenuOption widgetMenuOption)
-    {
-        return event.getMenuOption().equals(widgetMenuOption.getMenuOption()) && event.getMenuTarget().equals(widgetMenuOption.getMenuTarget());
-    }
-
-    /**
-     * Setter for showing the map. When the map is set to show, the map is
-     * re-rendered
-     *
-     * @param show Whether or not the map should be shown.
-     */
-    private synchronized void setDisplayOverlay(boolean show) {
-        showOverlay = show;
-        redraw = true;
     }
 
     boolean isOverlayShown() {
         return showOverlay;
-    }
-
-    public void shutDown() {
-        this.closeOverlay();
-        this.unregisterInputListeners();
-        this.removeCustomOptions();
     }
 
     public void requestRedraw() {
@@ -193,107 +102,8 @@ public class MinigameDisplayContainer extends Overlay implements IMinigameInputH
         return this.loadedMinigames.get(absoluteIndex);
     }
 
-    public void onWidgetMenuOptionClicked(WidgetMenuOptionClicked event)
-    {
-        for (WidgetMenuOption menuOption : this.menuOptions) {
-            if (clickedOptionEquals(event, menuOption)) {
-                if (this.isOverlayShown()) {
-                    closeOverlay();
-                } else {
-                    openOverlay();
-                }
-            }
-        }
-    }
-
-    private void openOverlay()
-    {
-        this.setDisplayOverlay(true);
-        for (WidgetMenuOption menuOption : menuOptions){
-            menuOption.setMenuOption("Hide");
-        }
-    }
-
-    void closeOverlay()
-    {
-        this.setDisplayOverlay(false);
-        for (WidgetMenuOption menuOption : menuOptions){
-            menuOption.setMenuOption("Show");
-        }
-    }
-
-    @Override
-    public Dimension render(Graphics2D graphics) {
-        if (!showOverlay) {
-            return null;
-        }
-
-        if (redraw || cachedImage == null) {
-            // Just in case - clean up minigames on redraw.
-            this.removeDeletedMinigames();
-
-            BufferedImage image = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            BufferedImage minigameImage;
-            if (this.loadedMinigames.size() > 0) {
-                minigameImage = this.loadedMinigames.get(this.currentMinigameIndex).getMainImage(
-                        new Dimension(WIDGET_WIDTH, WIDGET_HEIGHT)
-                );
-            } else {
-                minigameImage = new BufferedImage(WIDGET_WIDTH, WIDGET_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            }
-            minigameImage = ImageUtils.scale(minigameImage, WIDGET_WIDTH, WIDGET_HEIGHT);
-            image.getGraphics().drawImage(minigameImage, 0, MinigameToolbar.getToolbarHeight(), null);
-
-            BufferedImage toolbarImage = this.minigameToolbar.drawToolbar(
-                    this.loadedMinigames, this.firstTabIndex, this.currentMinigameIndex
-            );
-            toolbarImage = ImageUtils.scale(toolbarImage, IMG_WIDTH, MinigameToolbar.getToolbarHeight());
-            image.getGraphics().drawImage(toolbarImage, 0, 0, null);
-
-            synchronized (this) {
-                cachedImage = image;
-            }
-
-            redraw = false;
-        }
-
-        backgroundComponent.setRectangle(new Rectangle(-5, -5, cachedImage.getWidth() + 10, cachedImage.getHeight() + 10));
-        backgroundComponent.render(graphics);
-        graphics.drawImage(cachedImage, 0, 0, null);
-
-        return new Dimension(cachedImage.getWidth() + 10, cachedImage.getHeight() + 10);
-    }
-
-    /**
-     * Handles game state changes and re-draws the map
-     */
-    public void onGameStateChanged() {
-        redraw = true;
-    }
-
     private boolean overlayContains(final Point offsetPoint) {
         return offsetPoint.x < IMG_WIDTH && offsetPoint.y < IMG_HEIGHT;
-    }
-
-    void rotate(boolean toTheLeft) {
-        if (this.loadedMinigames.size() == 0) {
-            // If empty, there's nothing to rotate.
-            // Set the first tab index to the default, then redraw and return.
-            this.firstTabIndex = 0;
-            this.requestRedraw();
-            return;
-        }
-        if (toTheLeft) {
-            this.firstTabIndex++;
-        }
-        else {
-            this.firstTabIndex--;
-            if (this.firstTabIndex < 0) {
-                this.firstTabIndex += this.loadedMinigames.size();
-            }
-        }
-        this.firstTabIndex = this.firstTabIndex % this.loadedMinigames.size();
-        this.requestRedraw();
     }
 
     private void removeDeletedMinigames() {

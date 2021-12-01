@@ -1,4 +1,4 @@
-package com.runeliteminigames.models;
+package com.runeliteminigames.models.interf;
 
 import com.runeliteminigames.enums.ControlAction;
 

@@ -1,4 +1,4 @@
-package com.runeliteminigame.util;
+package com.runeliteminigames.util;
 
 import com.runeliteminigame.tasks.CombatTask;
 import net.runelite.client.ui.FontManager;
